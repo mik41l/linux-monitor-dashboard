@@ -1,0 +1,19 @@
+{
+  "name": "@monitor/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "typecheck": "tsc -b tsconfig.json",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@monitor/shared": "file:../shared",
+    "pino": "^9.6.0",
+    "zod": "^3.24.2"
+  }
+}
+

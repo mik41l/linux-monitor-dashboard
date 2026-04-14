@@ -1,0 +1,29 @@
+{
+  "name": "@monitor/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "db:push": "drizzle-kit push --config drizzle.config.ts",
+    "db:seed": "npm run build && node dist/db/seed.js",
+    "typecheck": "tsc -b tsconfig.json",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.0.0",
+    "@fastify/websocket": "^11.0.2",
+    "@monitor/shared": "file:../shared",
+    "drizzle-orm": "^0.44.2",
+    "fastify": "^5.2.1",
+    "pg": "^8.16.3",
+    "pino": "^9.6.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.5",
+    "drizzle-kit": "^0.31.10"
+  }
+}

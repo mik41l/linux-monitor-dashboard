@@ -1,0 +1,25 @@
+{
+  "name": "linux-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@11.6.2",
+  "workspaces": [
+    "packages/shared",
+    "packages/agent",
+    "packages/server",
+    "packages/dashboard"
+  ],
+  "scripts": {
+    "build": "tsc -b packages/shared/tsconfig.json packages/agent/tsconfig.json packages/server/tsconfig.json && npm run build --workspace @monitor/dashboard",
+    "build:core": "tsc -b packages/shared/tsconfig.json packages/agent/tsconfig.json packages/server/tsconfig.json",
+    "typecheck": "tsc -b packages/shared/tsconfig.json packages/agent/tsconfig.json packages/server/tsconfig.json && npm run typecheck --workspace @monitor/dashboard",
+    "clean": "tsc -b packages/shared/tsconfig.json packages/agent/tsconfig.json packages/server/tsconfig.json --clean",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.3"
+  }
+}

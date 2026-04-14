@@ -1,0 +1,33 @@
+services:
+  server:
+    environment:
+      LOG_LEVEL: debug
+    ports:
+      - "${API_PORT:-5005}:${API_PORT:-5005}"
+      - "${TCP_PORT:-9000}:${TCP_PORT:-9000}"
+
+  dashboard:
+    build:
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5005}
+        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:5005/ws}
+    ports:
+      - "${DASHBOARD_PORT:-3000}:80"
+
+  agent-1:
+    environment:
+      COLLECT_INTERVAL_MS: 5000
+      SECURITY_INTERVAL_MS: 7000
+      LOG_LEVEL: debug
+
+  agent-2:
+    environment:
+      COLLECT_INTERVAL_MS: 5000
+      SECURITY_INTERVAL_MS: 7000
+      LOG_LEVEL: debug
+
+  agent-3:
+    environment:
+      COLLECT_INTERVAL_MS: 5000
+      SECURITY_INTERVAL_MS: 7000
+      LOG_LEVEL: debug

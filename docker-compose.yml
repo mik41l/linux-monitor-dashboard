@@ -1,0 +1,170 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: monitor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-monitor}
+      POSTGRES_USER: ${POSTGRES_USER:-monitor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-monitor_secret}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-monitor}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - monitor-net
+
+  server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.server
+    container_name: monitor-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      API_HOST: 0.0.0.0
+      API_PORT: ${API_PORT:-5005}
+      TCP_HOST: 0.0.0.0
+      TCP_PORT: ${TCP_PORT:-9000}
+      TLS_ENABLED: ${TLS_ENABLED:-true}
+      TLS_CERT_PATH: /certs/server.crt
+      TLS_KEY_PATH: /certs/server.key
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-monitor}:${POSTGRES_PASSWORD:-monitor_secret}@postgres:5432/${POSTGRES_DB:-monitor}
+    ports:
+      - "${API_PORT:-5005}:${API_PORT:-5005}"
+      - "${TCP_PORT:-9000}:${TCP_PORT:-9000}"
+    volumes:
+      - ./docker/certs:/certs:ro
+    networks:
+      - monitor-net
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dashboard
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5005}
+        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:5005/ws}
+    container_name: monitor-dashboard
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - "${DASHBOARD_PORT:-3000}:80"
+    networks:
+      - monitor-net
+
+  agent-1:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    container_name: monitor-agent-1
+    restart: unless-stopped
+    depends_on:
+      - server
+    hostname: linux-server-1
+    environment:
+      AGENT_ID: agent-1
+      AGENT_NAME: linux-server-1
+      SERVER_HOST: server
+      SERVER_PORT: ${TCP_PORT:-9000}
+      COLLECT_INTERVAL_MS: ${COLLECT_INTERVAL_MS:-10000}
+      SECURITY_INTERVAL_MS: ${SECURITY_INTERVAL_MS:-15000}
+      PROC_PATH: /host/proc
+      LOG_PATH: /var/log
+      TLS_ENABLED: ${TLS_ENABLED:-true}
+      TLS_CA_PATH: /certs/server.crt
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - /proc:/host/proc:ro
+      - agent1_logs:/var/log
+      - ./docker/certs:/certs:ro
+    privileged: false
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - monitor-net
+
+  agent-2:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    container_name: monitor-agent-2
+    restart: unless-stopped
+    depends_on:
+      - server
+    hostname: linux-server-2
+    environment:
+      AGENT_ID: agent-2
+      AGENT_NAME: linux-server-2
+      SERVER_HOST: server
+      SERVER_PORT: ${TCP_PORT:-9000}
+      COLLECT_INTERVAL_MS: ${COLLECT_INTERVAL_MS:-10000}
+      SECURITY_INTERVAL_MS: ${SECURITY_INTERVAL_MS:-15000}
+      PROC_PATH: /host/proc
+      LOG_PATH: /var/log
+      TLS_ENABLED: ${TLS_ENABLED:-true}
+      TLS_CA_PATH: /certs/server.crt
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - /proc:/host/proc:ro
+      - agent2_logs:/var/log
+      - ./docker/certs:/certs:ro
+    privileged: false
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - monitor-net
+
+  agent-3:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    container_name: monitor-agent-3
+    restart: unless-stopped
+    depends_on:
+      - server
+    hostname: linux-server-3
+    environment:
+      AGENT_ID: agent-3
+      AGENT_NAME: linux-server-3
+      SERVER_HOST: server
+      SERVER_PORT: ${TCP_PORT:-9000}
+      COLLECT_INTERVAL_MS: ${COLLECT_INTERVAL_MS:-10000}
+      SECURITY_INTERVAL_MS: ${SECURITY_INTERVAL_MS:-15000}
+      PROC_PATH: /host/proc
+      LOG_PATH: /var/log
+      TLS_ENABLED: ${TLS_ENABLED:-true}
+      TLS_CA_PATH: /certs/server.crt
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - /proc:/host/proc:ro
+      - agent3_logs:/var/log
+      - ./docker/certs:/certs:ro
+    privileged: false
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - monitor-net
+
+volumes:
+  postgres_data:
+  agent1_logs:
+  agent2_logs:
+  agent3_logs:
+
+networks:
+  monitor-net:
+    driver: bridge
