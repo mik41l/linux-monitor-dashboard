@@ -63,6 +63,19 @@ export async function ensureDatabase(pool: Pool) {
       is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS sshd_audits (
+      id SERIAL PRIMARY KEY,
+      agent_id TEXT NOT NULL REFERENCES agents(agent_id) ON DELETE CASCADE,
+      status TEXT NOT NULL,
+      risk_score INTEGER NOT NULL DEFAULT 0,
+      config_path TEXT NOT NULL,
+      payload JSONB NOT NULL,
+      collected_at TIMESTAMPTZ NOT NULL,
+      received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS sshd_audits_agent_idx ON sshd_audits(agent_id);
+    CREATE INDEX IF NOT EXISTS sshd_audits_collected_idx ON sshd_audits(collected_at);
   `);
 
   await pool.query(`

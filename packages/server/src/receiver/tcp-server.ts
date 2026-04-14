@@ -6,7 +6,8 @@ import {
   MESSAGE_TYPES,
   encodeFrame,
   type AckMessage,
-  type MessageType
+  type MessageType,
+  type ProtocolFrame
 } from "@monitor/shared";
 import type pino from "pino";
 
@@ -21,9 +22,23 @@ import {
   isHandshakeFrame,
   isHeartbeatFrame,
   isMetricFrame,
+  isSshdAuditFrame,
   isSecurityEventFrame,
   parseFrames
 } from "./protocol-parser.js";
+
+interface FrameProcessingOptions {
+  frame: ProtocolFrame;
+  connections: ConnectionManager;
+  agentsService: AgentsService;
+  metricsService: MetricsService;
+  eventsService: EventsService;
+  alertsService: AlertsService;
+  correlationEngine: CorrelationEngine;
+  websocketHub: WebSocketHub;
+  logger: pino.Logger;
+  acknowledge: (messageType: MessageType, message: string) => void;
+}
 
 export function createTcpServer(options: {
   host: string;
@@ -67,44 +82,23 @@ export function createTcpServer(options: {
       remainder = decoded.remainder;
 
       for (const frame of decoded.frames) {
-        if (isHandshakeFrame(frame)) {
-          const agent = connections.registerHandshake(frame.payload);
-          await agentsService.upsertHandshake(frame.payload);
-          activeAgentId = agent.agentId;
-          logger.info({ agentId: agent.agentId }, "Agent handshake accepted");
-          writeAck(socket, frame.messageType, "Handshake received");
-          continue;
-        }
+        const nextAgentId = await processIncomingFrame({
+          frame,
+          connections,
+          agentsService,
+          metricsService,
+          eventsService,
+          alertsService,
+          correlationEngine,
+          websocketHub,
+          logger,
+          acknowledge: (messageType, message) => {
+            writeAck(socket, messageType, message);
+          }
+        });
 
-        if (isHeartbeatFrame(frame)) {
-          const agent = connections.markHeartbeat(frame.payload.agentId);
-          await agentsService.touchHeartbeat(frame.payload.agentId);
-          logger.debug({ agentId: frame.payload.agentId }, "Heartbeat received");
-          writeAck(socket, frame.messageType, agent ? "Heartbeat received" : "Unknown agent");
-          continue;
-        }
-
-        if (isMetricFrame(frame)) {
-          await metricsService.saveMetric(frame.payload);
-          await alertsService.createAlertsForMetric(frame.payload);
-          correlationEngine.processMetric(frame.payload);
-          websocketHub.broadcast({
-            type: "metric",
-            data: frame.payload
-          });
-          writeAck(socket, frame.messageType, "Metric received");
-          continue;
-        }
-
-        if (isSecurityEventFrame(frame)) {
-          await eventsService.saveEvent(frame.payload);
-          await alertsService.createAlertForSecurityEvent(frame.payload);
-          correlationEngine.processEvent(frame.payload);
-          websocketHub.broadcast({
-            type: "event",
-            data: frame.payload
-          });
-          writeAck(socket, frame.messageType, "Security event received");
+        if (nextAgentId) {
+          activeAgentId = nextAgentId;
         }
       }
     });
@@ -145,6 +139,71 @@ export function createTcpServer(options: {
       });
     }
   };
+}
+
+export async function processIncomingFrame(options: FrameProcessingOptions) {
+  const {
+    acknowledge,
+    agentsService,
+    alertsService,
+    connections,
+    correlationEngine,
+    eventsService,
+    frame,
+    logger,
+    metricsService,
+    websocketHub
+  } = options;
+
+  if (isHandshakeFrame(frame)) {
+    const agent = connections.registerHandshake(frame.payload);
+    await agentsService.upsertHandshake(frame.payload);
+    logger.info({ agentId: agent.agentId }, "Agent handshake accepted");
+    acknowledge(frame.messageType, "Handshake received");
+    return agent.agentId;
+  }
+
+  if (isHeartbeatFrame(frame)) {
+    const agent = connections.markHeartbeat(frame.payload.agentId);
+    await agentsService.touchHeartbeat(frame.payload.agentId);
+    logger.debug({ agentId: frame.payload.agentId }, "Heartbeat received");
+    acknowledge(frame.messageType, agent ? "Heartbeat received" : "Unknown agent");
+    return null;
+  }
+
+  if (isMetricFrame(frame)) {
+    await metricsService.saveMetric(frame.payload);
+    await alertsService.createAlertsForMetric(frame.payload);
+    correlationEngine.processMetric(frame.payload);
+    websocketHub.broadcast({
+      type: "metric",
+      data: frame.payload
+    });
+    acknowledge(frame.messageType, "Metric received");
+    return null;
+  }
+
+  if (isSecurityEventFrame(frame)) {
+    await eventsService.saveEvent(frame.payload);
+    await alertsService.createAlertForSecurityEvent(frame.payload);
+    correlationEngine.processEvent(frame.payload);
+    websocketHub.broadcast({
+      type: "event",
+      data: frame.payload
+    });
+    acknowledge(frame.messageType, "Security event received");
+  }
+
+  if (isSshdAuditFrame(frame)) {
+    await agentsService.saveSshdAudit(frame.payload);
+    websocketHub.broadcast({
+      type: "sshd-audit",
+      data: frame.payload
+    });
+    acknowledge(frame.messageType, "SSHD audit received");
+  }
+
+  return null;
 }
 
 function createServer(

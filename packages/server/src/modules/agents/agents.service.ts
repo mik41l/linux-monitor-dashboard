@@ -1,8 +1,9 @@
 import { and, desc, eq, ilike } from "drizzle-orm";
 
-import type { AgentHandshake } from "@monitor/shared";
+import type { AgentHandshake, SshdAuditResult } from "@monitor/shared";
 
 import { agents } from "../../db/schema/agents.schema.js";
+import { sshdAudits } from "../../db/schema/sshd-audits.schema.js";
 import type { Database } from "../shared/database.types.js";
 
 export class AgentsService {
@@ -79,5 +80,29 @@ export class AgentsService {
       .limit(1);
 
     return agent ?? null;
+  }
+
+  public async saveSshdAudit(audit: SshdAuditResult) {
+    await this.database.db.insert(sshdAudits).values({
+      agentId: audit.agentId,
+      status: audit.status,
+      riskScore: audit.riskScore,
+      configPath: audit.configPath,
+      payload: audit,
+      collectedAt: new Date(audit.collectedAt)
+    });
+  }
+
+  public async getLatestSshdAudit(agentId: string) {
+    const [audit] = await this.database.db
+      .select({
+        payload: sshdAudits.payload
+      })
+      .from(sshdAudits)
+      .where(eq(sshdAudits.agentId, agentId))
+      .orderBy(desc(sshdAudits.collectedAt))
+      .limit(1);
+
+    return (audit?.payload as SshdAuditResult | undefined) ?? null;
   }
 }

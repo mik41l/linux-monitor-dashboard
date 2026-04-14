@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { MessageChannel, Worker } from "node:worker_threads";
 
-import type { MetricData, SecurityEvent } from "@monitor/shared";
+import type { MetricData, SecurityEvent, SshdAuditResult } from "@monitor/shared";
 import type pino from "pino";
 
 import type { AgentEnv } from "../config/env.js";
@@ -13,6 +13,7 @@ interface WorkerResponse {
   requestId: string;
   metrics?: MetricData[];
   events?: SecurityEvent[];
+  sshdAudit?: SshdAuditResult;
 }
 
 export class WorkerManager {
@@ -59,6 +60,7 @@ export class WorkerManager {
       workerData: {
         agentId: env.AGENT_ID,
         logPath: env.LOG_PATH,
+        sshdConfigPath: env.SSHD_CONFIG_PATH,
         port: this.securityPort.port2
       },
       transferList: [this.securityPort.port2]
@@ -96,6 +98,10 @@ export class WorkerManager {
 
   public async collectSecurityEvents() {
     return this.requestSecurityEvents();
+  }
+
+  public async collectSshdAudit() {
+    return this.requestSshdAudit();
   }
 
   public dumpState() {
@@ -162,13 +168,45 @@ export class WorkerManager {
 
       this.securityPort.port1.on("message", handleMessage);
       this.securityPort.port1.postMessage({
-        type: "collect",
+        type: "collect-events",
         requestId
       });
 
       timer = setTimeout(() => {
         this.securityPort.port1.off("message", handleMessage);
         reject(new Error("Security worker request timed out"));
+      }, 5000);
+    });
+  }
+
+  private requestSshdAudit() {
+    const requestId = crypto.randomUUID();
+
+    return new Promise<SshdAuditResult | null>((resolve, reject) => {
+      let timer: NodeJS.Timeout | null = null;
+
+      const handleMessage = (message: WorkerResponse) => {
+        if (message.type !== "collection-result" || message.requestId !== requestId) {
+          return;
+        }
+
+        if (timer) {
+          clearTimeout(timer);
+        }
+
+        this.securityPort.port1.off("message", handleMessage);
+        resolve(message.sshdAudit ?? null);
+      };
+
+      this.securityPort.port1.on("message", handleMessage);
+      this.securityPort.port1.postMessage({
+        type: "collect-sshd-audit",
+        requestId
+      });
+
+      timer = setTimeout(() => {
+        this.securityPort.port1.off("message", handleMessage);
+        reject(new Error("SSHD audit request timed out"));
       }, 5000);
     });
   }

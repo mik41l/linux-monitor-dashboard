@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useMemo } from "react";
 
 import { getJson } from "../../api/client.js";
 import { DataTable } from "../../components/data-table/DataTable.js";
+import { Badge } from "../../components/ui/badge.js";
 import { Card, CardContent } from "../../components/ui/card.js";
 import { useLanguage } from "../../context/LanguageContext.js";
 import { formatBytes, formatDuration, formatTimestamp } from "../../lib/format.js";
@@ -13,7 +13,7 @@ import { CpuGauge } from "./components/CpuGauge.js";
 import { MemoryGauge } from "./components/MemoryGauge.js";
 import { MetricChart } from "./components/MetricChart.js";
 import { SeverityBadge } from "../events/components/SeverityBadge.js";
-import type { AgentInfo } from "@monitor/shared";
+import type { AgentInfo, SshdAuditResult } from "@monitor/shared";
 
 interface MetricRecord {
   id: number;
@@ -62,6 +62,10 @@ export function AgentDetailPage() {
     queryKey: ["agent-events", agentId],
     queryFn: () => getJson<EventRecord[]>("/api/events", { agentId, limit: 10 })
   });
+  const { data: sshdAuditData } = useQuery({
+    queryKey: ["agent-sshd-audit", agentId],
+    queryFn: () => getJson<SshdAuditResult | null>(`/api/agents/${agentId}/sshd-audit`)
+  });
 
   const agent = data?.data;
 
@@ -100,30 +104,36 @@ export function AgentDetailPage() {
       value: Number(entry.value.usagePercent ?? 0)
     }))
     .reverse();
-  const eventColumns = useMemo<Array<ColumnDef<EventRecord>>>(
-    () => [
-      {
-        accessorKey: "eventType",
-        header: t("event")
-      },
-      {
-        accessorKey: "severity",
-        header: t("severity"),
-        cell: ({ row }) => <SeverityBadge severity={row.original.severity} />
-      },
-      {
-        accessorKey: "message",
-        header: t("message"),
-        cell: ({ row }) => row.original.message ?? row.original.source ?? "n/a"
-      },
-      {
-        accessorKey: "occurredAt",
-        header: t("at"),
-        cell: ({ row }) => formatTimestamp(row.original.occurredAt, language)
-      }
-    ],
-    [language, t]
-  );
+  const eventColumns: Array<ColumnDef<EventRecord>> = [
+    {
+      accessorKey: "eventType",
+      header: t("event")
+    },
+    {
+      accessorKey: "severity",
+      header: t("severity"),
+      cell: ({ row }) => <SeverityBadge severity={row.original.severity} />
+    },
+    {
+      accessorKey: "message",
+      header: t("message"),
+      cell: ({ row }) => row.original.message ?? row.original.source ?? "n/a"
+    },
+    {
+      accessorKey: "occurredAt",
+      header: t("at"),
+      cell: ({ row }) => formatTimestamp(row.original.occurredAt, language)
+    }
+  ];
+  const sshdAudit = sshdAuditData?.data ?? null;
+  const sshdStatusVariant =
+    sshdAudit?.status === "critical"
+      ? "destructive"
+      : sshdAudit?.status === "warning"
+        ? "warning"
+        : sshdAudit?.status === "ok"
+          ? "success"
+          : "muted";
 
   return (
     <div className="space-y-6">
@@ -223,6 +233,96 @@ export function AgentDetailPage() {
           </CardContent>
         </Card>
       </section>
+
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-slate-400">SSHD audit</p>
+              <h3 className="mt-2 text-xl font-semibold text-white">SSH configuration posture</h3>
+            </div>
+            <Badge variant={sshdStatusVariant}>
+              {sshdAudit?.status ?? "unavailable"} · {sshdAudit?.riskScore ?? 0}
+            </Badge>
+          </div>
+
+          {!sshdAudit ? (
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-400">
+              No SSHD audit has been received yet.
+            </div>
+          ) : (
+            <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-slate-400">Config path</p>
+                  <p className="mt-2 text-sm text-white">{sshdAudit.configPath}</p>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-slate-400">Collected</p>
+                  <p className="mt-2 text-sm text-white">
+                    {formatTimestamp(sshdAudit.collectedAt, language)}
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-slate-400">PermitRootLogin</p>
+                  <p className="mt-2 text-sm text-white">{sshdAudit.permitRootLogin ?? "not set"}</p>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-slate-400">PasswordAuthentication</p>
+                  <p className="mt-2 text-sm text-white">
+                    {sshdAudit.passwordAuthentication ?? "not set"}
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-slate-400">Port / MaxAuthTries</p>
+                  <p className="mt-2 text-sm text-white">
+                    {sshdAudit.port ?? "not set"} / {sshdAudit.maxAuthTries ?? "not set"}
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-sm text-slate-400">AllowUsers</p>
+                  <p className="mt-2 text-sm text-white">
+                    {sshdAudit.allowUsers.length > 0 ? sshdAudit.allowUsers.join(", ") : "not set"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-sm text-slate-400">Findings</p>
+                {sshdAudit.error ? (
+                  <p className="text-sm text-amber-200">{sshdAudit.error}</p>
+                ) : sshdAudit.findings.length === 0 ? (
+                  <p className="text-sm text-emerald-200">No risky SSHD settings were detected.</p>
+                ) : (
+                  sshdAudit.findings.map((finding) => (
+                    <div
+                      key={`${finding.key}-${finding.message}`}
+                      className="rounded-2xl border border-white/10 bg-slate-950/40 p-3"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant={
+                            finding.severity === "critical"
+                              ? "destructive"
+                              : finding.severity === "warning"
+                                ? "warning"
+                                : "muted"
+                          }
+                        >
+                          {finding.severity}
+                        </Badge>
+                        <p className="text-sm font-medium text-white">{finding.key}</p>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-300">{finding.message}</p>
+                      <p className="mt-2 text-xs text-slate-500">{finding.recommendation}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-6">

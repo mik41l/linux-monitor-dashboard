@@ -10,6 +10,7 @@ const envSchema = z.object({
   SECURITY_INTERVAL_MS: z.coerce.number().int().positive().default(15000),
   PROC_PATH: z.string().min(1).default("/proc"),
   LOG_PATH: z.string().min(1).default("/var/log"),
+  SSHD_CONFIG_PATH: z.string().min(1).default("/etc/ssh/sshd_config"),
   AGENT_CONFIG_PATH: z.string().min(1).default("/app/packages/agent/agent.config.json"),
   TLS_ENABLED: z.coerce.boolean().default(false),
   TLS_CA_PATH: z.string().min(1).optional(),

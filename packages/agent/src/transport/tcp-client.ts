@@ -12,7 +12,8 @@ import {
   type HeartbeatMessage,
   type MetricData,
   type MessageType,
-  type SecurityEvent
+  type SecurityEvent,
+  type SshdAuditResult
 } from "@monitor/shared";
 import type pino from "pino";
 
@@ -72,6 +73,10 @@ export class TcpClient {
 
   public sendSecurityEvent(event: SecurityEvent) {
     this.send(MESSAGE_TYPES.SECURITY_EVENT, event);
+  }
+
+  public sendSshdAudit(audit: SshdAuditResult) {
+    this.send(MESSAGE_TYPES.SSHD_AUDIT, audit);
   }
 
   private connect() {

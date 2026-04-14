@@ -2,6 +2,7 @@ type WebsocketMessage =
   | { type: "metric"; data: unknown }
   | { type: "event"; data: unknown }
   | { type: "alert"; data: unknown }
+  | { type: "sshd-audit"; data: unknown }
   | { type: "summary"; data: unknown };
 
 interface MinimalSocket {

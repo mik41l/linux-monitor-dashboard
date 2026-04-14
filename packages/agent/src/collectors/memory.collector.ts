@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 
 import type { MemoryMetric } from "@monitor/shared";
 
-function parseMeminfo(meminfo: string) {
+export function parseMeminfo(meminfo: string) {
   return new Map(
     meminfo
       .split("\n")

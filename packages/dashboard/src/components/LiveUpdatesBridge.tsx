@@ -6,7 +6,7 @@ import { useLanguage } from "../context/LanguageContext.js";
 import { useWebSocket } from "../hooks/useWebSocket.js";
 
 interface LiveMessage {
-  type: "metric" | "event" | "alert" | "summary";
+  type: "metric" | "event" | "alert" | "sshd-audit" | "summary";
   data: unknown;
 }
 
@@ -34,6 +34,11 @@ export function LiveUpdatesBridge() {
       void queryClient.invalidateQueries({ queryKey: ["alerts"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       toast.error(t("newAlertReceived"));
+      return;
+    }
+
+    if (message.type === "sshd-audit") {
+      void queryClient.invalidateQueries({ queryKey: ["agent-sshd-audit"] });
     }
   });
 

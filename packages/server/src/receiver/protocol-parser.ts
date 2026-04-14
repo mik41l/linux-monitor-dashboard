@@ -5,7 +5,8 @@ import {
   type HeartbeatMessage,
   type MetricData,
   type ProtocolFrame,
-  type SecurityEvent
+  type SecurityEvent,
+  type SshdAuditResult
 } from "@monitor/shared";
 
 export type ParsedFrame =
@@ -13,6 +14,7 @@ export type ParsedFrame =
   | ProtocolFrame<HeartbeatMessage>
   | ProtocolFrame<MetricData>
   | ProtocolFrame<SecurityEvent>
+  | ProtocolFrame<SshdAuditResult>
   | ProtocolFrame;
 
 export function parseFrames(chunk: Buffer, remainder: Buffer) {
@@ -37,4 +39,10 @@ export function isSecurityEventFrame(
   frame: ProtocolFrame
 ): frame is ProtocolFrame<SecurityEvent> {
   return frame.messageType === MESSAGE_TYPES.SECURITY_EVENT;
+}
+
+export function isSshdAuditFrame(
+  frame: ProtocolFrame
+): frame is ProtocolFrame<SshdAuditResult> {
+  return frame.messageType === MESSAGE_TYPES.SSHD_AUDIT;
 }

@@ -28,4 +28,13 @@ export async function registerAgentsController(
       data: agent
     };
   });
+
+  app.get("/api/agents/:agentId/sshd-audit", async (request) => {
+    const params = agentParamsSchema.parse(request.params);
+    const audit = await service.getLatestSshdAudit(params.agentId);
+
+    return {
+      data: audit
+    };
+  });
 }

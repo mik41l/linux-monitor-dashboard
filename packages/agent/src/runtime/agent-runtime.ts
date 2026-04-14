@@ -77,10 +77,17 @@ export class AgentRuntime {
 
   private async collectAndSendSecurityEvents() {
     try {
-      const events = await this.workerManager.collectSecurityEvents();
+      const [events, sshdAudit] = await Promise.all([
+        this.workerManager.collectSecurityEvents(),
+        this.workerManager.collectSshdAudit()
+      ]);
 
       for (const event of events) {
         this.sendSecurityEvent(event);
+      }
+
+      if (sshdAudit) {
+        this.client.sendSshdAudit(sshdAudit);
       }
     } catch (error) {
       this.logger.error({ error }, "Security collection failed");
