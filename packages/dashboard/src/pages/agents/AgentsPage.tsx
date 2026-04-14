@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Search } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { getJson } from "../../api/client.js";
@@ -11,13 +11,15 @@ import { Input } from "../../components/ui/input.js";
 import { Select } from "../../components/ui/select.js";
 import { useLanguage } from "../../context/LanguageContext.js";
 import { formatTimestamp } from "../../lib/format.js";
+import { translateAgentStatus } from "../../lib/labels.js";
 import { AgentStatusBadge } from "./components/AgentStatusBadge.js";
 import type { AgentInfo } from "@monitor/shared";
 
 export function AgentsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { language, t } = useLanguage();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
+  const [status, setStatus] = useState(searchParams.get("status") ?? "");
   const { data } = useQuery({
     queryKey: ["agents", search, status],
     queryFn: () => getJson<AgentInfo[]>("/api/agents", { search, status })
@@ -49,11 +51,11 @@ export function AgentsPage() {
       {
         accessorKey: "kernel",
         header: t("kernel"),
-        cell: ({ row }) => row.original.osInfo?.kernelVersion ?? "unknown"
+        cell: ({ row }) => row.original.osInfo?.kernelVersion ?? t("unknown")
       },
       {
         accessorKey: "lastHeartbeat",
-        header: "Last heartbeat",
+        header: t("lastHeartbeat"),
         cell: ({ row }) =>
           row.original.lastHeartbeat
             ? formatTimestamp(row.original.lastHeartbeat, language)
@@ -75,6 +77,20 @@ export function AgentsPage() {
     [language, t]
   );
 
+  const syncParams = (nextSearch: string, nextStatus: string) => {
+    const nextParams = new URLSearchParams();
+
+    if (nextSearch.trim()) {
+      nextParams.set("search", nextSearch.trim());
+    }
+
+    if (nextStatus) {
+      nextParams.set("status", nextStatus);
+    }
+
+    setSearchParams(nextParams, { replace: true });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -90,15 +106,26 @@ export function AgentsPage() {
           <label className="flex items-center gap-3">
             <Search className="h-4 w-4 text-slate-400" />
             <Input
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                const nextSearch = event.target.value;
+                setSearch(nextSearch);
+                syncParams(nextSearch, status);
+              }}
               placeholder={t("filteringHint")}
               value={search}
             />
           </label>
-          <Select onChange={(event) => setStatus(event.target.value)} value={status}>
-            <option value="">All status</option>
-            <option value="online">Online</option>
-            <option value="offline">Offline</option>
+          <Select
+            onChange={(event) => {
+              const nextStatus = event.target.value;
+              setStatus(nextStatus);
+              syncParams(search, nextStatus);
+            }}
+            value={status}
+          >
+            <option value="">{t("allStatus")}</option>
+            <option value="online">{translateAgentStatus("online", t)}</option>
+            <option value="offline">{translateAgentStatus("offline", t)}</option>
           </Select>
         </div>
         </CardContent>

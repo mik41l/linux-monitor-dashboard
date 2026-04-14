@@ -9,6 +9,7 @@ import { Badge } from "../../components/ui/badge.js";
 import { Card, CardContent } from "../../components/ui/card.js";
 import { useLanguage } from "../../context/LanguageContext.js";
 import { formatBytes, formatDuration, formatTimestamp } from "../../lib/format.js";
+import { translateAuditStatus, translateRiskLevel } from "../../lib/labels.js";
 import { AgentStatusBadge } from "./components/AgentStatusBadge.js";
 import { CpuGauge } from "./components/CpuGauge.js";
 import { MemoryGauge } from "./components/MemoryGauge.js";
@@ -77,7 +78,7 @@ export function AgentDetailPage() {
   if (!agent) {
     return (
       <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 text-slate-300">
-        Agent details are not available yet.
+        {t("agentDetailsUnavailable")}
       </div>
     );
   }
@@ -143,21 +144,21 @@ export function AgentDetailPage() {
   const portScanColumns: Array<ColumnDef<OpenPort>> = [
     {
       accessorKey: "protocol",
-      header: "Proto"
+      header: t("proto")
     },
     {
       accessorKey: "address",
-      header: "Address",
+      header: t("address"),
       cell: ({ row }) => `${row.original.address}:${row.original.port}`
     },
     {
       accessorKey: "process",
-      header: "Process",
+      header: t("process"),
       cell: ({ row }) => row.original.serviceName ?? row.original.process
     },
     {
       accessorKey: "riskLevel",
-      header: "Risk",
+      header: t("risk"),
       cell: ({ row }) => (
         <Badge
           variant={
@@ -168,7 +169,7 @@ export function AgentDetailPage() {
                 : "success"
           }
         >
-          {row.original.riskLevel}
+          {translateRiskLevel(row.original.riskLevel, t)}
         </Badge>
       )
     }
@@ -191,7 +192,7 @@ export function AgentDetailPage() {
               className="inline-flex rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-slate-200"
               to={`/agents/${agent.agentId}/security`}
             >
-              Security detail
+              {t("securityDetailLink")}
             </Link>
           </div>
         </div>
@@ -204,7 +205,7 @@ export function AgentDetailPage() {
 
       <section className="grid gap-4 xl:grid-cols-2">
         <MetricChart color="#22d3ee" data={cpuChartData} title={t("cpuHistory")} />
-        <MetricChart color="#f59e0b" data={memoryChartData} title="Memory history" />
+        <MetricChart color="#f59e0b" data={memoryChartData} title={t("memoryHistory")} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
@@ -213,7 +214,7 @@ export function AgentDetailPage() {
             <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{t("recentMetricSamples")}</p>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-sm text-slate-400">Disk</p>
+                <p className="text-sm text-slate-400">{t("diskLabel")}</p>
                 <p className="mt-2 text-lg font-medium text-white">
                   {latestDisk ? `${Number(latestDisk.usagePercent ?? 0).toFixed(1)}%` : "n/a"}
                 </p>
@@ -222,7 +223,7 @@ export function AgentDetailPage() {
                 </p>
               </div>
               <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-sm text-slate-400">Network</p>
+                <p className="text-sm text-slate-400">{t("networkLabel")}</p>
                 <p className="mt-2 text-lg font-medium text-white">
                   {latestNetwork
                     ? `${formatBytes(Number(latestNetwork.rxBytes ?? 0))} / ${formatBytes(
@@ -235,12 +236,12 @@ export function AgentDetailPage() {
                 </p>
               </div>
               <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-sm text-slate-400">Memory footprint</p>
+                <p className="text-sm text-slate-400">{t("memoryFootprint")}</p>
                 <p className="mt-2 text-lg font-medium text-white">{memoryUsed}</p>
                 <p className="mt-2 text-sm text-slate-500">{memoryPercent}</p>
               </div>
               <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-sm text-slate-400">Telemetry</p>
+                <p className="text-sm text-slate-400">{t("telemetry")}</p>
                 <p className="mt-2 text-lg font-medium text-white">
                   {agent.lastHeartbeat ? formatTimestamp(agent.lastHeartbeat, language) : t("noHeartbeat")}
                 </p>
@@ -252,27 +253,27 @@ export function AgentDetailPage() {
 
         <Card>
           <CardContent className="space-y-3 p-6">
-            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Agent info</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{t("agentInfo")}</p>
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
-              <p className="text-slate-400">Hostname</p>
+              <p className="text-slate-400">{t("hostname")}</p>
               <p className="mt-1 text-white">{agent.hostname}</p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
-              <p className="text-slate-400">OS / Kernel</p>
+              <p className="text-slate-400">{t("osKernel")}</p>
               <p className="mt-1 text-white">
-                {agent.osInfo?.platform ?? "unknown"} • {agent.osInfo?.kernelVersion ?? "unknown"}
+                {agent.osInfo?.platform ?? t("unknown")} • {agent.osInfo?.kernelVersion ?? t("unknown")}
               </p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
-              <p className="text-slate-400">IP address</p>
+              <p className="text-slate-400">{t("ipAddress")}</p>
               <p className="mt-1 text-white">{agent.ipAddress ?? "n/a"}</p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
-              <p className="text-slate-400">Registered</p>
+              <p className="text-slate-400">{t("registered")}</p>
               <p className="mt-1 text-white">{formatTimestamp(agent.registeredAt, language)}</p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
-              <p className="text-slate-400">Uptime</p>
+              <p className="text-slate-400">{t("uptime")}</p>
               <p className="mt-1 text-white">
                 {formatDuration(agent.osInfo?.uptimeSeconds)}
               </p>
@@ -285,61 +286,61 @@ export function AgentDetailPage() {
         <CardContent className="space-y-4 p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-slate-400">SSHD audit</p>
-              <h3 className="mt-2 text-xl font-semibold text-white">SSH configuration posture</h3>
+              <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{t("sshdAudit")}</p>
+              <h3 className="mt-2 text-xl font-semibold text-white">{t("sshConfigurationPosture")}</h3>
             </div>
             <Badge variant={sshdStatusVariant}>
-              {sshdAudit?.status ?? "unavailable"} · {sshdAudit?.riskScore ?? 0}
+              {translateAuditStatus(sshdAudit?.status ?? "unavailable", t)} · {sshdAudit?.riskScore ?? 0}
             </Badge>
           </div>
 
           {!sshdAudit ? (
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-400">
-              No SSHD audit has been received yet.
+              {t("noSshdAuditYet")}
             </div>
           ) : (
             <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-400">Config path</p>
+                  <p className="text-sm text-slate-400">{t("configPath")}</p>
                   <p className="mt-2 text-sm text-white">{sshdAudit.configPath}</p>
                 </div>
                 <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-400">Collected</p>
+                  <p className="text-sm text-slate-400">{t("collected")}</p>
                   <p className="mt-2 text-sm text-white">
                     {formatTimestamp(sshdAudit.collectedAt, language)}
                   </p>
                 </div>
                 <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-400">PermitRootLogin</p>
-                  <p className="mt-2 text-sm text-white">{sshdAudit.permitRootLogin ?? "not set"}</p>
+                  <p className="text-sm text-slate-400">{t("permitRootLogin")}</p>
+                  <p className="mt-2 text-sm text-white">{sshdAudit.permitRootLogin ?? t("notSet")}</p>
                 </div>
                 <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-400">PasswordAuthentication</p>
+                  <p className="text-sm text-slate-400">{t("passwordAuthentication")}</p>
                   <p className="mt-2 text-sm text-white">
-                    {sshdAudit.passwordAuthentication ?? "not set"}
+                    {sshdAudit.passwordAuthentication ?? t("notSet")}
                   </p>
                 </div>
                 <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-400">Port / MaxAuthTries</p>
+                  <p className="text-sm text-slate-400">{t("portMaxAuthTries")}</p>
                   <p className="mt-2 text-sm text-white">
-                    {sshdAudit.port ?? "not set"} / {sshdAudit.maxAuthTries ?? "not set"}
+                    {sshdAudit.port ?? t("notSet")} / {sshdAudit.maxAuthTries ?? t("notSet")}
                   </p>
                 </div>
                 <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-sm text-slate-400">AllowUsers</p>
+                  <p className="text-sm text-slate-400">{t("allowUsers")}</p>
                   <p className="mt-2 text-sm text-white">
-                    {sshdAudit.allowUsers.length > 0 ? sshdAudit.allowUsers.join(", ") : "not set"}
+                    {sshdAudit.allowUsers.length > 0 ? sshdAudit.allowUsers.join(", ") : t("notSet")}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-sm text-slate-400">Findings</p>
+                <p className="text-sm text-slate-400">{t("findings")}</p>
                 {sshdAudit.error ? (
                   <p className="text-sm text-amber-200">{sshdAudit.error}</p>
                 ) : sshdAudit.findings.length === 0 ? (
-                  <p className="text-sm text-emerald-200">No risky SSHD settings were detected.</p>
+                  <p className="text-sm text-emerald-200">{t("noRiskySshdSettings")}</p>
                 ) : (
                   sshdAudit.findings.map((finding) => (
                     <div
@@ -356,7 +357,7 @@ export function AgentDetailPage() {
                                 : "muted"
                           }
                         >
-                          {finding.severity}
+                          {translateAuditStatus(finding.severity, t)}
                         </Badge>
                         <p className="text-sm font-medium text-white">{finding.key}</p>
                       </div>
@@ -375,8 +376,8 @@ export function AgentDetailPage() {
         <CardContent className="space-y-4 p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Open ports</p>
-              <h3 className="mt-2 text-xl font-semibold text-white">Listening socket exposure</h3>
+              <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{t("openPortsTitle")}</p>
+              <h3 className="mt-2 text-xl font-semibold text-white">{t("listeningSocketExposure")}</h3>
             </div>
             <Badge
               variant={
@@ -389,12 +390,12 @@ export function AgentDetailPage() {
                       : "muted"
               }
             >
-              {portScan?.status ?? "unavailable"} · {portScan?.riskScore ?? 0}
+              {translateAuditStatus(portScan?.status ?? "unavailable", t)} · {portScan?.riskScore ?? 0}
             </Badge>
           </div>
           {!portScan ? (
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-400">
-              No port scan has been received yet.
+              {t("noPortScanYet")}
             </div>
           ) : (
             <>
@@ -415,7 +416,7 @@ export function AgentDetailPage() {
               <DataTable
                 columns={portScanColumns}
                 data={portScan.openPorts}
-                emptyMessage="No open ports reported."
+                emptyMessage={t("noOpenPortsReported")}
               />
             </>
           )}
@@ -425,7 +426,7 @@ export function AgentDetailPage() {
       <Card>
         <CardContent className="p-6">
           <p className="mb-4 text-xs uppercase tracking-[0.28em] text-slate-400">
-            Recent security events
+            {t("recentSecurityEvents")}
           </p>
           <DataTable
             columns={eventColumns}

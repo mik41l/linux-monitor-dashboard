@@ -1,14 +1,17 @@
 import { MemoryStick } from "lucide-react";
 
 import { Card, CardContent } from "../../../components/ui/card.js";
+import { useLanguage } from "../../../context/LanguageContext.js";
 
 export function MemoryGauge({ value }: { value: number }) {
+  const { t } = useLanguage();
+
   return (
     <Card>
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-slate-400">Memory</p>
+            <p className="text-sm text-slate-400">{t("memoryLabel")}</p>
             <p className="mt-2 text-3xl font-semibold text-white">{value.toFixed(1)}%</p>
           </div>
           <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-3 text-amber-100">

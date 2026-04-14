@@ -67,20 +67,20 @@ export function AlertsPage() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Select onChange={(event) => setStatus(event.target.value)} value={status}>
-              <option value="">All status</option>
-              <option value="open">Open</option>
-              <option value="resolved">Resolved</option>
+              <option value="">{t("allStatus")}</option>
+              <option value="open">{t("statusOpen")}</option>
+              <option value="resolved">{t("statusResolved")}</option>
             </Select>
             <Select onChange={(event) => setSeverity(event.target.value)} value={severity}>
-              <option value="">All severity</option>
-              <option value="info">Info</option>
-              <option value="warning">Warning</option>
-              <option value="critical">Critical</option>
+              <option value="">{t("allSeverity")}</option>
+              <option value="info">{t("infoSeverity")}</option>
+              <option value="warning">{t("warningSeverity")}</option>
+              <option value="critical">{t("criticalSeverity")}</option>
             </Select>
             <AlertRulesDialog
               onToggle={(id, isEnabled) => ruleMutation.mutate({ id, isEnabled })}
               rules={rules}
-              title="Alert rules"
+              title={t("alertRules")}
             />
           </div>
         </CardContent>

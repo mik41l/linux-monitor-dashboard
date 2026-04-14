@@ -2,6 +2,8 @@ import { formatTimestamp } from "../../../lib/format.js";
 import { Badge } from "../../../components/ui/badge.js";
 import { Button } from "../../../components/ui/button.js";
 import { Card, CardContent } from "../../../components/ui/card.js";
+import { useLanguage } from "../../../context/LanguageContext.js";
+import { translateAuditStatus, translateSeverity } from "../../../lib/labels.js";
 
 interface AlertCardProps {
   alert: {
@@ -31,7 +33,8 @@ export function AlertCard({
       ? "destructive"
       : alert.severity === "warning"
         ? "warning"
-        : "muted";
+      : "muted";
+  const { t } = useLanguage();
 
   return (
     <Card>
@@ -45,13 +48,13 @@ export function AlertCard({
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant={variant}>{alert.severity}</Badge>
+            <Badge variant={variant}>{translateSeverity(alert.severity, t)}</Badge>
             {alert.status === "open" ? (
               <Button onClick={() => onResolve(alert.id)} type="button">
                 {resolveLabel}
               </Button>
             ) : (
-              <Badge variant="muted">{alert.status}</Badge>
+              <Badge variant="muted">{translateAuditStatus(alert.status, t)}</Badge>
             )}
           </div>
         </div>

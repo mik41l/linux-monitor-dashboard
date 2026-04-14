@@ -1,0 +1,32 @@
+flowchart LR
+    subgraph A1["Linux Host A"]
+        AG1["Agent"]
+    end
+
+    subgraph A2["Linux Host B"]
+        AG2["Agent"]
+    end
+
+    subgraph A3["Linux Host N"]
+        AGN["Agent"]
+    end
+
+    subgraph S["Central Server"]
+        TCP["TCP Receiver"]
+        CORR["Correlation Engine"]
+        DB["PostgreSQL"]
+        API["REST API + WebSocket"]
+        TCP --> CORR
+        TCP --> DB
+        CORR --> DB
+        DB --> API
+    end
+
+    subgraph D["Web Dashboard"]
+        UI["React Dashboard"]
+    end
+
+    AG1 -->|TLS/TCP frames| TCP
+    AG2 -->|TLS/TCP frames| TCP
+    AGN -->|TLS/TCP frames| TCP
+    API -->|HTTP/WebSocket| UI

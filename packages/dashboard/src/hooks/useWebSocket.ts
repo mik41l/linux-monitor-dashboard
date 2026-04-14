@@ -1,8 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 const WS_URL = import.meta.env.VITE_WS_URL ?? "ws://localhost:5005/ws";
 
 export function useWebSocket(onMessage: (payload: unknown) => void) {
+  const onMessageRef = useRef(onMessage);
+
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
+
   useEffect(() => {
     let socket: WebSocket | null = null;
     let reconnectTimer: number | null = null;
@@ -14,7 +20,7 @@ export function useWebSocket(onMessage: (payload: unknown) => void) {
       socket.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data) as unknown;
-          onMessage(payload);
+          onMessageRef.current(payload);
         } catch {
           // Ignore malformed frames.
         }
@@ -40,5 +46,5 @@ export function useWebSocket(onMessage: (payload: unknown) => void) {
 
       socket?.close();
     };
-  }, [onMessage]);
+  }, []);
 }

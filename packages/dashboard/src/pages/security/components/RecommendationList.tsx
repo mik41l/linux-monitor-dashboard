@@ -1,17 +1,20 @@
 import { Card, CardContent } from "../../../components/ui/card.js";
+import { useLanguage } from "../../../context/LanguageContext.js";
 
 export function RecommendationList({ recommendations }: { recommendations: string[] }) {
+  const { t } = useLanguage();
+
   return (
     <Card>
       <CardContent className="space-y-4 p-6">
         <div>
-          <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Recommendations</p>
-          <h3 className="mt-2 text-xl font-semibold text-white">Next remediation steps</h3>
+          <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{t("recommendationsLabel")}</p>
+          <h3 className="mt-2 text-xl font-semibold text-white">{t("recommendationsTitle")}</h3>
         </div>
 
         {recommendations.length === 0 ? (
           <div className="rounded-3xl border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm text-emerald-100">
-            No immediate remediation items were produced from the latest audit set.
+            {t("noRecommendations")}
           </div>
         ) : (
           <div className="space-y-3">

@@ -1,14 +1,17 @@
 import { Cpu } from "lucide-react";
 
 import { Card, CardContent } from "../../../components/ui/card.js";
+import { useLanguage } from "../../../context/LanguageContext.js";
 
 export function CpuGauge({ value }: { value: number }) {
+  const { t } = useLanguage();
+
   return (
     <Card>
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-slate-400">CPU</p>
+            <p className="text-sm text-slate-400">{t("cpuLabel")}</p>
             <p className="mt-2 text-3xl font-semibold text-white">{value.toFixed(1)}%</p>
           </div>
           <div className="rounded-2xl border border-cyan-300/30 bg-cyan-300/10 p-3 text-cyan-100">

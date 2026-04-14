@@ -5,22 +5,8 @@ import type { ActiveSession as ActiveSessionRecord, LoginActivityReport, LoginRe
 import { DataTable } from "../../../components/data-table/DataTable.js";
 import { Badge } from "../../../components/ui/badge.js";
 import { Card, CardContent } from "../../../components/ui/card.js";
-
-const sessionColumns: Array<ColumnDef<ActiveSessionRecord>> = [
-  { accessorKey: "user", header: "User" },
-  { accessorKey: "tty", header: "TTY" },
-  { accessorKey: "from", header: "Source" },
-  { accessorKey: "loginAt", header: "Login" },
-  { accessorKey: "idle", header: "Idle" },
-  { accessorKey: "command", header: "Command" }
-];
-
-const failedColumns: Array<ColumnDef<LoginRecord>> = [
-  { accessorKey: "user", header: "User" },
-  { accessorKey: "from", header: "Source" },
-  { accessorKey: "loginAt", header: "Login" },
-  { accessorKey: "status", header: "Status" }
-];
+import { useLanguage } from "../../../context/LanguageContext.js";
+import { translateAuditStatus } from "../../../lib/labels.js";
 
 function getVariant(status: LoginActivityReport["status"] | undefined) {
   if (status === "critical") {
@@ -39,16 +25,39 @@ function getVariant(status: LoginActivityReport["status"] | undefined) {
 }
 
 export function ActiveSessions({ report }: { report: LoginActivityReport | null }) {
+  const { t } = useLanguage();
+  const activeSessions = report?.activeSessions ?? [];
+  const failedLogins = report?.failedLogins ?? [];
+  const successfulLogins = report?.successfulLogins ?? [];
+  const sessionColumns: Array<ColumnDef<ActiveSessionRecord>> = [
+    { accessorKey: "user", header: t("user") },
+    { accessorKey: "tty", header: "TTY" },
+    { accessorKey: "from", header: t("source") },
+    { accessorKey: "loginAt", header: t("login") },
+    { accessorKey: "idle", header: t("idle") },
+    { accessorKey: "command", header: t("command") }
+  ];
+  const failedColumns: Array<ColumnDef<LoginRecord>> = [
+    { accessorKey: "user", header: t("user") },
+    { accessorKey: "from", header: t("source") },
+    { accessorKey: "loginAt", header: t("login") },
+    {
+      accessorKey: "status",
+      header: t("status"),
+      cell: ({ row }) => translateAuditStatus(row.original.status, t)
+    }
+  ];
+
   return (
     <Card>
       <CardContent className="space-y-4 p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Login activity</p>
-            <h3 className="mt-2 text-xl font-semibold text-white">Sessions and authentication history</h3>
+            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{t("loginActivity")}</p>
+            <h3 className="mt-2 text-xl font-semibold text-white">{t("sessionsAndAuthHistory")}</h3>
           </div>
           <Badge variant={getVariant(report?.status)}>
-            {report?.status ?? "unavailable"} · {report?.riskScore ?? 0}
+            {translateAuditStatus(report?.status ?? "unavailable", t)} · {report?.riskScore ?? 0}
           </Badge>
         </div>
 
@@ -66,7 +75,7 @@ export function ActiveSessions({ report }: { report: LoginActivityReport | null 
                           : "muted"
                     }
                   >
-                    {finding.severity}
+                    {translateAuditStatus(finding.severity, t)}
                   </Badge>
                   <p className="text-sm font-medium text-white">{finding.key}</p>
                 </div>
@@ -76,16 +85,31 @@ export function ActiveSessions({ report }: { report: LoginActivityReport | null 
           </div>
         ) : null}
 
-        <div className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-sm text-slate-400">{t("activeSessionsLabel")}</p>
+            <p className="mt-2 text-lg font-medium text-white">{activeSessions.length}</p>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-sm text-slate-400">{t("failedLogins")}</p>
+            <p className="mt-2 text-lg font-medium text-white">{failedLogins.length}</p>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-sm text-slate-400">{t("successfulLogins")}</p>
+            <p className="mt-2 text-lg font-medium text-white">{successfulLogins.length}</p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-2">
           <DataTable
             columns={sessionColumns}
-            data={report?.activeSessions ?? []}
-            emptyMessage="No active sessions were reported."
+            data={activeSessions}
+            emptyMessage={t("noActiveSessions")}
           />
           <DataTable
             columns={failedColumns}
-            data={report?.failedLogins ?? []}
-            emptyMessage={report?.error ?? "No failed login history was reported."}
+            data={failedLogins}
+            emptyMessage={report?.error ?? t("noFailedLogins")}
           />
         </div>
       </CardContent>

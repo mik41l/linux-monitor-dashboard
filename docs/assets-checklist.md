@@ -1,8 +1,8 @@
 # Assets Checklist
 
 ## Diagrams
-- Architecture diagram
-- TCP/data-flow diagram
+- Architecture diagram (`docs/diagrams/architecture.mmd`)
+- TCP/data-flow diagram (`docs/diagrams/data-flow.mmd`)
 - Correlation engine flow
 - Security module flow
 
@@ -22,3 +22,8 @@
 - Docker Compose start command
 - Test command output summary
 - Example security findings from one agent
+
+## Report Sources
+- Report structure (`docs/report-structure-ru.md`)
+- Bibliography draft (`docs/bibliography.md`)
+- Appendices outline (`docs/appendices-outline.md`)

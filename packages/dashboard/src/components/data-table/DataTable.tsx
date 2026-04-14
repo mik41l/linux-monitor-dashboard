@@ -6,6 +6,7 @@ import {
   type ColumnDef
 } from "@tanstack/react-table";
 
+import { useLanguage } from "../../context/LanguageContext.js";
 import { cn } from "../../lib/utils.js";
 import { Button } from "../ui/button.js";
 
@@ -20,6 +21,7 @@ export function DataTable<TData>({
   data,
   emptyMessage
 }: DataTableProps<TData>) {
+  const { t } = useLanguage();
   const table = useReactTable({
     data,
     columns,
@@ -82,7 +84,7 @@ export function DataTable<TData>({
             type="button"
             variant="outline"
           >
-            Prev
+            {t("prev")}
           </Button>
           <Button
             disabled={!table.getCanNextPage()}
@@ -90,7 +92,7 @@ export function DataTable<TData>({
             type="button"
             variant="outline"
           >
-            Next
+            {t("next")}
           </Button>
         </div>
       </div>

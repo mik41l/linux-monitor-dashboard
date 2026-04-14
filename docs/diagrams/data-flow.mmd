@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant Agent as Linux Agent
+    participant Server as Fastify Server
+    participant DB as PostgreSQL
+    participant WS as WebSocket Hub
+    participant UI as Dashboard
+
+    Agent->>Agent: Collect /proc metrics
+    Agent->>Agent: Run security collectors
+    Agent->>Server: Send binary frame
+    Server->>Server: Decode frame by type
+    Server->>DB: Persist metrics/report/event
+    Server->>Server: Run correlation rules
+    Server->>WS: Broadcast invalidation
+    UI->>Server: Request updated snapshot
+    Server->>UI: Return latest data

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -19,9 +19,14 @@ interface LiveMessage {
   data: unknown;
 }
 
+interface AlertPayload {
+  id?: number;
+}
+
 export function LiveUpdatesBridge() {
   const queryClient = useQueryClient();
   const { t } = useLanguage();
+  const seenAlertIdsRef = useRef(new Set<number>());
 
   useWebSocket((payload) => {
     const message = payload as LiveMessage;
@@ -42,7 +47,23 @@ export function LiveUpdatesBridge() {
     if (message.type === "alert") {
       void queryClient.invalidateQueries({ queryKey: ["alerts"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
-      toast.error(t("newAlertReceived"));
+
+      const alert = message.data as AlertPayload;
+
+      if (typeof alert.id === "number" && !seenAlertIdsRef.current.has(alert.id)) {
+        seenAlertIdsRef.current.add(alert.id);
+
+        if (seenAlertIdsRef.current.size > 200) {
+          const oldestSeenAlertId = seenAlertIdsRef.current.values().next().value;
+
+          if (typeof oldestSeenAlertId === "number") {
+            seenAlertIdsRef.current.delete(oldestSeenAlertId);
+          }
+        }
+
+        toast.error(t("newAlertReceived"));
+      }
+
       return;
     }
 
@@ -69,8 +90,6 @@ export function LiveUpdatesBridge() {
       void queryClient.invalidateQueries({ queryKey: ["security-overview"] });
     }
   });
-
-  useEffect(() => undefined, []);
 
   return null;
 }

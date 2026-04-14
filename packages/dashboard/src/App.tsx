@@ -6,6 +6,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout.js";
 import { LiveUpdatesBridge } from "./components/LiveUpdatesBridge.js";
 import { LanguageProvider } from "./context/LanguageContext.js";
+import { useLanguage } from "./context/LanguageContext.js";
 import { queryClient } from "./lib/query-client.js";
 
 const OverviewPage = lazy(() =>
@@ -42,9 +43,11 @@ const AgentSecurityDetailPage = lazy(() =>
 );
 
 function PageLoader() {
+  const { t } = useLanguage();
+
   return (
     <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-400">
-      Loading view...
+      {t("loadingView")}
     </div>
   );
 }

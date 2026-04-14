@@ -16,6 +16,7 @@ import { Badge } from "../components/ui/badge.js";
 import { Card, CardContent } from "../components/ui/card.js";
 import { useLanguage } from "../context/LanguageContext.js";
 import { formatTimestamp } from "../lib/format.js";
+import { translateSeverity } from "../lib/labels.js";
 
 interface DashboardSummary {
   totals: {
@@ -158,7 +159,7 @@ export function OverviewPage() {
                             : "muted"
                       }
                     >
-                      {alert.severity}
+                      {translateSeverity(alert.severity, t)}
                     </Badge>
                   </div>
                   <p className="mt-3 text-xs text-slate-500">
@@ -176,9 +177,9 @@ export function OverviewPage() {
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-cyan-200/70">
-                Resource trend
+                {t("resourceTrend")}
               </p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">CPU / RAM utilization</h2>
+              <h2 className="mt-2 text-2xl font-semibold text-white">{t("cpuRamUtilization")}</h2>
             </div>
           </div>
           <div className="h-80">

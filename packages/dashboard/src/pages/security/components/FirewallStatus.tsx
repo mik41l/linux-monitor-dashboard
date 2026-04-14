@@ -5,19 +5,8 @@ import type { FirewallAudit, FirewallRule } from "@monitor/shared";
 import { DataTable } from "../../../components/data-table/DataTable.js";
 import { Badge } from "../../../components/ui/badge.js";
 import { Card, CardContent } from "../../../components/ui/card.js";
-
-const columns: Array<ColumnDef<FirewallRule>> = [
-  { accessorKey: "chain", header: "Chain" },
-  { accessorKey: "target", header: "Target" },
-  { accessorKey: "protocol", header: "Proto" },
-  { accessorKey: "source", header: "Source" },
-  { accessorKey: "destination", header: "Destination" },
-  {
-    accessorKey: "port",
-    header: "Port",
-    cell: ({ row }) => row.original.port ?? "n/a"
-  }
-];
+import { useLanguage } from "../../../context/LanguageContext.js";
+import { translateAuditStatus } from "../../../lib/labels.js";
 
 function getVariant(status: FirewallAudit["status"] | undefined) {
   if (status === "critical") {
@@ -36,35 +25,50 @@ function getVariant(status: FirewallAudit["status"] | undefined) {
 }
 
 export function FirewallStatus({ audit }: { audit: FirewallAudit | null }) {
+  const { t } = useLanguage();
+  const hasRules = (audit?.rules?.length ?? 0) > 0;
+  const columns: Array<ColumnDef<FirewallRule>> = [
+    { accessorKey: "chain", header: t("chain") },
+    { accessorKey: "target", header: t("target") },
+    { accessorKey: "protocol", header: t("proto") },
+    { accessorKey: "source", header: t("source") },
+    { accessorKey: "destination", header: t("destination") },
+    {
+      accessorKey: "port",
+      header: t("port"),
+      cell: ({ row }) => row.original.port ?? "n/a"
+    }
+  ];
+
   return (
     <Card>
       <CardContent className="space-y-4 p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Firewall</p>
-            <h3 className="mt-2 text-xl font-semibold text-white">Policy and rule coverage</h3>
+            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{t("firewallTitle")}</p>
+            <h3 className="mt-2 text-xl font-semibold text-white">{t("policyCoverage")}</h3>
           </div>
           <Badge variant={getVariant(audit?.status)}>
-            {audit?.status ?? "unavailable"} · {audit?.riskScore ?? 0}
+            {translateAuditStatus(audit?.status ?? "unavailable", t)} · {audit?.riskScore ?? 0}
           </Badge>
         </div>
 
         <div className="grid gap-3 md:grid-cols-4">
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-            <p className="text-sm text-slate-400">Backend</p>
-            <p className="mt-2 text-sm text-white">{audit?.backend ?? "none"}</p>
+            <p className="text-sm text-slate-400">{t("backendLabel")}</p>
+            <p className="mt-2 text-sm text-white">{audit?.backend ?? t("backendNone")}</p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-            <p className="text-sm text-slate-400">INPUT</p>
-            <p className="mt-2 text-sm text-white">{audit?.defaultPolicy.input ?? "unknown"}</p>
+            <p className="text-sm text-slate-400">{t("inputPolicy")}</p>
+            <p className="mt-2 text-sm text-white">{audit?.defaultPolicy.input ?? t("unknown")}</p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-            <p className="text-sm text-slate-400">OUTPUT</p>
-            <p className="mt-2 text-sm text-white">{audit?.defaultPolicy.output ?? "unknown"}</p>
+            <p className="text-sm text-slate-400">{t("outputPolicy")}</p>
+            <p className="mt-2 text-sm text-white">{audit?.defaultPolicy.output ?? t("unknown")}</p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-            <p className="text-sm text-slate-400">FORWARD</p>
-            <p className="mt-2 text-sm text-white">{audit?.defaultPolicy.forward ?? "unknown"}</p>
+            <p className="text-sm text-slate-400">{t("forwardPolicy")}</p>
+            <p className="mt-2 text-sm text-white">{audit?.defaultPolicy.forward ?? t("unknown")}</p>
           </div>
         </div>
 
@@ -82,7 +86,7 @@ export function FirewallStatus({ audit }: { audit: FirewallAudit | null }) {
                           : "muted"
                     }
                   >
-                    {finding.severity}
+                    {translateAuditStatus(finding.severity, t)}
                   </Badge>
                   <p className="text-sm font-medium text-white">{finding.key}</p>
                 </div>
@@ -92,11 +96,17 @@ export function FirewallStatus({ audit }: { audit: FirewallAudit | null }) {
           </div>
         ) : null}
 
-        <DataTable
-          columns={columns}
-          data={audit?.rules ?? []}
-          emptyMessage={audit?.error ?? "No firewall rules were reported."}
-        />
+        {hasRules ? (
+          <DataTable
+            columns={columns}
+            data={audit?.rules ?? []}
+            emptyMessage={audit?.error ?? t("noFirewallRules")}
+          />
+        ) : (
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-400">
+            {audit?.error ?? t("noFirewallRulesForAgent")}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Shield, ShieldAlert, ShieldCheck, ShieldX } from "lucide-react";
@@ -9,6 +10,7 @@ import { DataTable } from "../../components/data-table/DataTable.js";
 import { Badge } from "../../components/ui/badge.js";
 import { Card, CardContent } from "../../components/ui/card.js";
 import { useLanguage } from "../../context/LanguageContext.js";
+import { translateAuditStatus } from "../../lib/labels.js";
 
 interface SecurityOverviewResponse {
   totals: {
@@ -53,49 +55,6 @@ function badgeVariant(status: string) {
   return "muted";
 }
 
-const columns: Array<ColumnDef<SecurityOverviewResponse["agents"][number]>> = [
-  {
-    accessorKey: "hostname",
-    header: "Agent",
-    cell: ({ row }) => (
-      <div>
-        <p className="font-medium text-white">{row.original.hostname}</p>
-        <p className="text-xs text-slate-500">{row.original.agentId}</p>
-      </div>
-    )
-  },
-  {
-    accessorKey: "overallStatus",
-    header: "Overall",
-    cell: ({ row }) => <Badge variant={badgeVariant(row.original.overallStatus)}>{row.original.overallStatus}</Badge>
-  },
-  {
-    accessorKey: "hardeningScore",
-    header: "Hardening",
-    cell: ({ row }) => `${row.original.hardeningScore}/100`
-  },
-  {
-    accessorKey: "exposedPorts",
-    header: "Exposed ports"
-  },
-  {
-    accessorKey: "activeSessions",
-    header: "Sessions"
-  },
-  {
-    accessorKey: "agentId",
-    header: "Detail",
-    cell: ({ row }) => (
-      <Link
-        className="inline-flex rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-cyan-100"
-        to={`/agents/${row.original.agentId}/security`}
-      >
-        View
-      </Link>
-    )
-  }
-];
-
 export function SecurityOverviewPage() {
   const { t } = useLanguage();
   const { data } = useQuery({
@@ -104,6 +63,55 @@ export function SecurityOverviewPage() {
   });
   const totals = data?.data.totals;
   const agents = data?.data.agents ?? [];
+  const columns = useMemo<Array<ColumnDef<SecurityOverviewResponse["agents"][number]>>>(
+    () => [
+      {
+        accessorKey: "hostname",
+        header: t("agent"),
+        cell: ({ row }) => (
+          <div>
+            <p className="font-medium text-white">{row.original.hostname}</p>
+            <p className="text-xs text-slate-500">{row.original.agentId}</p>
+          </div>
+        )
+      },
+      {
+        accessorKey: "overallStatus",
+        header: t("overall"),
+        cell: ({ row }) => (
+          <Badge variant={badgeVariant(row.original.overallStatus)}>
+            {translateAuditStatus(row.original.overallStatus, t)}
+          </Badge>
+        )
+      },
+      {
+        accessorKey: "hardeningScore",
+        header: t("hardening"),
+        cell: ({ row }) => `${row.original.hardeningScore}/100`
+      },
+      {
+        accessorKey: "exposedPorts",
+        header: t("exposedPortsLabel")
+      },
+      {
+        accessorKey: "activeSessions",
+        header: t("sessions")
+      },
+      {
+        accessorKey: "agentId",
+        header: t("detail"),
+        cell: ({ row }) => (
+          <Link
+            className="inline-flex rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-cyan-100"
+            to={`/agents/${row.original.agentId}/security`}
+          >
+            {t("view")}
+          </Link>
+        )
+      }
+    ],
+    [t]
+  );
 
   return (
     <div className="space-y-6">
@@ -112,28 +120,28 @@ export function SecurityOverviewPage() {
           accent="border-cyan-300/30 bg-cyan-300/10 text-cyan-200"
           eyebrow={t("inventory")}
           icon={<Shield className="h-5 w-5" />}
-          title="Security-scoped agents"
+          title={t("securityScopedAgents")}
           value={String(totals?.agents ?? 0)}
         />
         <StatCard
           accent="border-rose-300/30 bg-rose-300/10 text-rose-200"
-          eyebrow="Critical"
+          eyebrow={t("criticalSeverity")}
           icon={<ShieldX className="h-5 w-5" />}
-          title="Critical posture"
+          title={t("criticalPosture")}
           value={String(totals?.criticalAgents ?? 0)}
         />
         <StatCard
           accent="border-amber-300/30 bg-amber-300/10 text-amber-200"
-          eyebrow="Warning"
+          eyebrow={t("warningSeverity")}
           icon={<ShieldAlert className="h-5 w-5" />}
-          title="Needs review"
+          title={t("needsReview")}
           value={String(totals?.warningAgents ?? 0)}
         />
         <StatCard
           accent="border-emerald-300/30 bg-emerald-300/10 text-emerald-200"
-          eyebrow="Baseline"
+          eyebrow={t("hardening")}
           icon={<ShieldCheck className="h-5 w-5" />}
-          title="Average hardening"
+          title={t("averageHardening")}
           value={String(totals?.averageHardeningScore ?? 0)}
         />
       </section>
@@ -141,11 +149,11 @@ export function SecurityOverviewPage() {
       <Card>
         <CardContent className="space-y-4 p-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Security overview</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Per-agent posture snapshot</h2>
+            <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{t("securityOverviewEyebrow")}</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">{t("securityOverviewTitle")}</h2>
           </div>
 
-          <DataTable columns={columns} data={agents} emptyMessage="No security snapshots are available yet." />
+          <DataTable columns={columns} data={agents} emptyMessage={t("noSecuritySnapshots")} />
         </CardContent>
       </Card>
     </div>

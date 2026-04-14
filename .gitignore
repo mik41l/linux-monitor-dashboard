@@ -6,3 +6,4 @@ dist
 .claude/
 .tasks
 tasks/
+.docs/

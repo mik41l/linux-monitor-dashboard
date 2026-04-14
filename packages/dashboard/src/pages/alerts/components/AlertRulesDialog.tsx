@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Badge } from "../../../components/ui/badge.js";
 import { Button } from "../../../components/ui/button.js";
 import { Card, CardContent } from "../../../components/ui/card.js";
+import { useLanguage } from "../../../context/LanguageContext.js";
+import { translateSeverity } from "../../../lib/labels.js";
 
 interface AlertRuleRecord {
   id: number;
@@ -20,6 +22,7 @@ interface AlertRulesDialogProps {
 
 export function AlertRulesDialog({ title, rules, onToggle }: AlertRulesDialogProps) {
   const [open, setOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <>
@@ -34,11 +37,11 @@ export function AlertRulesDialog({ title, rules, onToggle }: AlertRulesDialogPro
                 <div>
                   <h3 className="text-xl font-semibold text-white">{title}</h3>
                   <p className="mt-1 text-sm text-slate-400">
-                    Correlation and threshold rule controls.
+                    {t("alertRulesHint")}
                   </p>
                 </div>
                 <Button onClick={() => setOpen(false)} type="button" variant="ghost">
-                  Close
+                  {t("close")}
                 </Button>
               </div>
               <div className="space-y-3">
@@ -50,7 +53,7 @@ export function AlertRulesDialog({ title, rules, onToggle }: AlertRulesDialogPro
                     <div>
                       <p className="font-medium text-white">{rule.name}</p>
                       <p className="mt-1 text-sm text-slate-400">
-                        {rule.description ?? "No description"}
+                        {rule.description ?? t("noDescription")}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -63,14 +66,14 @@ export function AlertRulesDialog({ title, rules, onToggle }: AlertRulesDialogPro
                               : "muted"
                         }
                       >
-                        {rule.severity}
+                        {translateSeverity(rule.severity, t)}
                       </Badge>
                       <Button
                         onClick={() => onToggle(rule.id, !rule.isEnabled)}
                         type="button"
                         variant={rule.isEnabled ? "default" : "outline"}
                       >
-                        {rule.isEnabled ? "Enabled" : "Disabled"}
+                        {rule.isEnabled ? t("enabled") : t("disabled")}
                       </Button>
                     </div>
                   </div>
