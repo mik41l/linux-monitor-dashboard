@@ -6,7 +6,16 @@ import { useLanguage } from "../context/LanguageContext.js";
 import { useWebSocket } from "../hooks/useWebSocket.js";
 
 interface LiveMessage {
-  type: "metric" | "event" | "alert" | "sshd-audit" | "summary";
+  type:
+    | "metric"
+    | "event"
+    | "alert"
+    | "sshd-audit"
+    | "port-scan"
+    | "firewall-audit"
+    | "hardening-report"
+    | "login-activity"
+    | "summary";
   data: unknown;
 }
 
@@ -39,6 +48,25 @@ export function LiveUpdatesBridge() {
 
     if (message.type === "sshd-audit") {
       void queryClient.invalidateQueries({ queryKey: ["agent-sshd-audit"] });
+      void queryClient.invalidateQueries({ queryKey: ["agent-security"] });
+      void queryClient.invalidateQueries({ queryKey: ["security-overview"] });
+      return;
+    }
+
+    if (message.type === "port-scan") {
+      void queryClient.invalidateQueries({ queryKey: ["agent-port-scan"] });
+      void queryClient.invalidateQueries({ queryKey: ["agent-security"] });
+      void queryClient.invalidateQueries({ queryKey: ["security-overview"] });
+      return;
+    }
+
+    if (
+      message.type === "firewall-audit" ||
+      message.type === "hardening-report" ||
+      message.type === "login-activity"
+    ) {
+      void queryClient.invalidateQueries({ queryKey: ["agent-security"] });
+      void queryClient.invalidateQueries({ queryKey: ["security-overview"] });
     }
   });
 

@@ -3,6 +3,10 @@ type WebsocketMessage =
   | { type: "event"; data: unknown }
   | { type: "alert"; data: unknown }
   | { type: "sshd-audit"; data: unknown }
+  | { type: "port-scan"; data: unknown }
+  | { type: "firewall-audit"; data: unknown }
+  | { type: "hardening-report"; data: unknown }
+  | { type: "login-activity"; data: unknown }
   | { type: "summary"; data: unknown };
 
 interface MinimalSocket {

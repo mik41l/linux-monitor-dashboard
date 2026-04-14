@@ -1,0 +1,9 @@
+Port 22
+PermitRootLogin yes
+PasswordAuthentication yes
+MaxAuthTries 10
+PermitEmptyPasswords yes
+X11Forwarding yes
+Protocol 1
+UsePAM yes
+LoginGraceTime 300

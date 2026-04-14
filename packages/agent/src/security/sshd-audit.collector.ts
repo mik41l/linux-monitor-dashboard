@@ -228,9 +228,21 @@ export function scoreSshdConfig(parsed: ParsedSshdConfig) {
 }
 
 export class SshdAuditCollector {
-  public constructor(private readonly configPath: string) {}
+  private lastCollectedAt = 0;
+  private cached: SshdAuditResult | null = null;
+
+  public constructor(
+    private readonly configPath: string,
+    private readonly intervalMs = 60 * 60 * 1000
+  ) {}
 
   public async collect(agentId: string): Promise<SshdAuditResult> {
+    const now = Date.now();
+
+    if (this.cached && now - this.lastCollectedAt < this.intervalMs) {
+      return this.cached;
+    }
+
     const collectedAt = new Date().toISOString();
 
     try {
@@ -238,7 +250,7 @@ export class SshdAuditCollector {
       const parsed = parseSshdConfig(content);
       const scored = scoreSshdConfig(parsed);
 
-      return {
+      const report = {
         agentId,
         configPath: this.configPath,
         collectedAt,
@@ -260,9 +272,14 @@ export class SshdAuditCollector {
         ...(parsed.protocol ? { protocol: parsed.protocol } : {}),
         ...(parsed.usePAM ? { usePAM: parsed.usePAM } : {}),
         ...(parsed.loginGraceTime ? { loginGraceTime: parsed.loginGraceTime } : {})
-      };
+      } satisfies SshdAuditResult;
+
+      this.cached = report;
+      this.lastCollectedAt = now;
+
+      return report;
     } catch (error) {
-      return {
+      const report = {
         agentId,
         configPath: this.configPath,
         collectedAt,
@@ -272,7 +289,12 @@ export class SshdAuditCollector {
         allowUsers: [],
         findings: [],
         error: error instanceof Error ? error.message : "Unable to read sshd config"
-      };
+      } satisfies SshdAuditResult;
+
+      this.cached = report;
+      this.lastCollectedAt = now;
+
+      return report;
     }
   }
 }

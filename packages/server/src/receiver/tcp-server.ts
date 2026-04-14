@@ -21,7 +21,11 @@ import { ConnectionManager } from "./connection-manager.js";
 import {
   isHandshakeFrame,
   isHeartbeatFrame,
+  isFirewallAuditFrame,
+  isHardeningReportFrame,
+  isLoginActivityFrame,
   isMetricFrame,
+  isPortScanFrame,
   isSshdAuditFrame,
   isSecurityEventFrame,
   parseFrames
@@ -201,6 +205,42 @@ export async function processIncomingFrame(options: FrameProcessingOptions) {
       data: frame.payload
     });
     acknowledge(frame.messageType, "SSHD audit received");
+  }
+
+  if (isPortScanFrame(frame)) {
+    await agentsService.savePortScan(frame.payload);
+    websocketHub.broadcast({
+      type: "port-scan",
+      data: frame.payload
+    });
+    acknowledge(frame.messageType, "Port scan received");
+  }
+
+  if (isFirewallAuditFrame(frame)) {
+    await agentsService.saveFirewallAudit(frame.payload);
+    websocketHub.broadcast({
+      type: "firewall-audit",
+      data: frame.payload
+    });
+    acknowledge(frame.messageType, "Firewall audit received");
+  }
+
+  if (isHardeningReportFrame(frame)) {
+    await agentsService.saveHardeningReport(frame.payload);
+    websocketHub.broadcast({
+      type: "hardening-report",
+      data: frame.payload
+    });
+    acknowledge(frame.messageType, "Hardening report received");
+  }
+
+  if (isLoginActivityFrame(frame)) {
+    await agentsService.saveLoginActivity(frame.payload);
+    websocketHub.broadcast({
+      type: "login-activity",
+      data: frame.payload
+    });
+    acknowledge(frame.messageType, "Login activity received");
   }
 
   return null;

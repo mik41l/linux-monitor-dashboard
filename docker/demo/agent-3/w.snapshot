@@ -1,0 +1,2 @@
+root pts/0 10.30.0.77 04:11 0.00s python incident.py
+deploy pts/1 10.30.0.40 13:05 1:02m bash

@@ -1,4 +1,4 @@
-import { Activity, BellRing, LayoutDashboard, ShieldAlert, Server } from "lucide-react";
+import { Activity, BellRing, LayoutDashboard, Shield, ShieldAlert, Server } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { useLanguage } from "../../context/LanguageContext.js";
@@ -10,6 +10,7 @@ export function AppSidebar() {
     { to: "/agents", label: t("navAgents"), icon: Server },
     { to: "/events", label: t("navEvents"), icon: Activity },
     { to: "/alerts", label: t("navAlerts"), icon: ShieldAlert },
+    { to: "/security", label: t("navSecurity"), icon: Shield },
     { to: "/stream", label: t("navStream"), icon: BellRing }
   ];
 

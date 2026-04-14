@@ -1,7 +1,15 @@
 import crypto from "node:crypto";
 import { MessageChannel, Worker } from "node:worker_threads";
 
-import type { MetricData, SecurityEvent, SshdAuditResult } from "@monitor/shared";
+import type {
+  FirewallAudit,
+  HardeningReport,
+  LoginActivityReport,
+  MetricData,
+  PortScanReport,
+  SecurityEvent,
+  SshdAuditResult
+} from "@monitor/shared";
 import type pino from "pino";
 
 import type { AgentEnv } from "../config/env.js";
@@ -14,6 +22,10 @@ interface WorkerResponse {
   metrics?: MetricData[];
   events?: SecurityEvent[];
   sshdAudit?: SshdAuditResult;
+  portScan?: PortScanReport;
+  firewallAudit?: FirewallAudit;
+  hardeningReport?: HardeningReport;
+  loginActivity?: LoginActivityReport;
 }
 
 export class WorkerManager {
@@ -61,6 +73,14 @@ export class WorkerManager {
         agentId: env.AGENT_ID,
         logPath: env.LOG_PATH,
         sshdConfigPath: env.SSHD_CONFIG_PATH,
+        ...(env.W_SNAPSHOT_PATH ? { wSnapshotPath: env.W_SNAPSHOT_PATH } : {}),
+        ...(env.LAST_SNAPSHOT_PATH ? { lastSnapshotPath: env.LAST_SNAPSHOT_PATH } : {}),
+        ...(env.LASTB_SNAPSHOT_PATH ? { lastbSnapshotPath: env.LASTB_SNAPSHOT_PATH } : {}),
+        sshdAuditIntervalMs: env.SSHD_AUDIT_INTERVAL_MS,
+        portScanIntervalMs: env.PORT_SCAN_INTERVAL_MS,
+        firewallIntervalMs: env.FIREWALL_INTERVAL_MS,
+        hardeningIntervalMs: env.HARDENING_INTERVAL_MS,
+        loginActivityIntervalMs: env.LOGIN_ACTIVITY_INTERVAL_MS,
         port: this.securityPort.port2
       },
       transferList: [this.securityPort.port2]
@@ -102,6 +122,22 @@ export class WorkerManager {
 
   public async collectSshdAudit() {
     return this.requestSshdAudit();
+  }
+
+  public async collectPortScan() {
+    return this.requestPortScan();
+  }
+
+  public async collectFirewallAudit() {
+    return this.requestFirewallAudit();
+  }
+
+  public async collectHardeningReport() {
+    return this.requestHardeningReport();
+  }
+
+  public async collectLoginActivity() {
+    return this.requestLoginActivity();
   }
 
   public dumpState() {
@@ -207,6 +243,146 @@ export class WorkerManager {
       timer = setTimeout(() => {
         this.securityPort.port1.off("message", handleMessage);
         reject(new Error("SSHD audit request timed out"));
+      }, 5000);
+    });
+  }
+
+  private requestPortScan() {
+    const requestId = crypto.randomUUID();
+
+    return new Promise<{ report: PortScanReport | null; events: SecurityEvent[] }>((resolve, reject) => {
+      let timer: NodeJS.Timeout | null = null;
+
+      const handleMessage = (message: WorkerResponse) => {
+        if (message.type !== "collection-result" || message.requestId !== requestId) {
+          return;
+        }
+
+        if (timer) {
+          clearTimeout(timer);
+        }
+
+        this.securityPort.port1.off("message", handleMessage);
+        resolve({
+          report: message.portScan ?? null,
+          events: message.events ?? []
+        });
+      };
+
+      this.securityPort.port1.on("message", handleMessage);
+      this.securityPort.port1.postMessage({
+        type: "collect-port-scan",
+        requestId
+      });
+
+      timer = setTimeout(() => {
+        this.securityPort.port1.off("message", handleMessage);
+        reject(new Error("Port scan request timed out"));
+      }, 5000);
+    });
+  }
+
+  private requestFirewallAudit() {
+    const requestId = crypto.randomUUID();
+
+    return new Promise<{ report: FirewallAudit | null; events: SecurityEvent[] }>((resolve, reject) => {
+      let timer: NodeJS.Timeout | null = null;
+
+      const handleMessage = (message: WorkerResponse) => {
+        if (message.type !== "collection-result" || message.requestId !== requestId) {
+          return;
+        }
+
+        if (timer) {
+          clearTimeout(timer);
+        }
+
+        this.securityPort.port1.off("message", handleMessage);
+        resolve({
+          report: message.firewallAudit ?? null,
+          events: message.events ?? []
+        });
+      };
+
+      this.securityPort.port1.on("message", handleMessage);
+      this.securityPort.port1.postMessage({
+        type: "collect-firewall-audit",
+        requestId
+      });
+
+      timer = setTimeout(() => {
+        this.securityPort.port1.off("message", handleMessage);
+        reject(new Error("Firewall audit request timed out"));
+      }, 5000);
+    });
+  }
+
+  private requestHardeningReport() {
+    const requestId = crypto.randomUUID();
+
+    return new Promise<{ report: HardeningReport | null; events: SecurityEvent[] }>((resolve, reject) => {
+      let timer: NodeJS.Timeout | null = null;
+
+      const handleMessage = (message: WorkerResponse) => {
+        if (message.type !== "collection-result" || message.requestId !== requestId) {
+          return;
+        }
+
+        if (timer) {
+          clearTimeout(timer);
+        }
+
+        this.securityPort.port1.off("message", handleMessage);
+        resolve({
+          report: message.hardeningReport ?? null,
+          events: message.events ?? []
+        });
+      };
+
+      this.securityPort.port1.on("message", handleMessage);
+      this.securityPort.port1.postMessage({
+        type: "collect-hardening-report",
+        requestId
+      });
+
+      timer = setTimeout(() => {
+        this.securityPort.port1.off("message", handleMessage);
+        reject(new Error("Hardening report request timed out"));
+      }, 5000);
+    });
+  }
+
+  private requestLoginActivity() {
+    const requestId = crypto.randomUUID();
+
+    return new Promise<{ report: LoginActivityReport | null; events: SecurityEvent[] }>((resolve, reject) => {
+      let timer: NodeJS.Timeout | null = null;
+
+      const handleMessage = (message: WorkerResponse) => {
+        if (message.type !== "collection-result" || message.requestId !== requestId) {
+          return;
+        }
+
+        if (timer) {
+          clearTimeout(timer);
+        }
+
+        this.securityPort.port1.off("message", handleMessage);
+        resolve({
+          report: message.loginActivity ?? null,
+          events: message.events ?? []
+        });
+      };
+
+      this.securityPort.port1.on("message", handleMessage);
+      this.securityPort.port1.postMessage({
+        type: "collect-login-activity",
+        requestId
+      });
+
+      timer = setTimeout(() => {
+        this.securityPort.port1.off("message", handleMessage);
+        reject(new Error("Login activity request timed out"));
       }, 5000);
     });
   }

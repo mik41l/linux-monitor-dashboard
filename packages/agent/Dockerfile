@@ -17,6 +17,10 @@ RUN npm run build --workspace @monitor/shared && npm run build --workspace @moni
 FROM node:20-slim
 WORKDIR /app
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends iproute2 iptables netcat-openbsd nftables procps util-linux \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages/shared/package.json ./packages/shared/package.json
@@ -24,8 +28,9 @@ COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 COPY --from=build /app/packages/agent/package.json ./packages/agent/package.json
 COPY --from=build /app/packages/agent/agent.config.json ./packages/agent/agent.config.json
 COPY --from=build /app/packages/agent/dist ./packages/agent/dist
+COPY docker/agent-entrypoint.sh /app/agent-entrypoint.sh
 
 ENV PROC_PATH=/host/proc
 ENV LOG_PATH=/var/log
 
-CMD ["node", "packages/agent/dist/index.js"]
+CMD ["sh", "/app/agent-entrypoint.sh"]

@@ -81,12 +81,18 @@ services:
       SECURITY_INTERVAL_MS: ${SECURITY_INTERVAL_MS:-15000}
       PROC_PATH: /host/proc
       LOG_PATH: /var/log
+      SSHD_CONFIG_PATH: /demo/sshd_config
+      W_SNAPSHOT_PATH: /demo/w.snapshot
+      LAST_SNAPSHOT_PATH: /demo/last.snapshot
+      LASTB_SNAPSHOT_PATH: /demo/lastb.snapshot
+      DEMO_LISTENERS: tcp:127.0.0.1:8080
       TLS_ENABLED: ${TLS_ENABLED:-true}
       TLS_CA_PATH: /certs/server.crt
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       - /proc:/host/proc:ro
-      - agent1_logs:/var/log
+      - ./docker/demo/agent-1/logs:/var/log:ro
+      - ./docker/demo/agent-1:/demo:ro
       - ./docker/certs:/certs:ro
     privileged: false
     read_only: true
@@ -113,12 +119,18 @@ services:
       SECURITY_INTERVAL_MS: ${SECURITY_INTERVAL_MS:-15000}
       PROC_PATH: /host/proc
       LOG_PATH: /var/log
+      SSHD_CONFIG_PATH: /demo/sshd_config
+      W_SNAPSHOT_PATH: /demo/w.snapshot
+      LAST_SNAPSHOT_PATH: /demo/last.snapshot
+      LASTB_SNAPSHOT_PATH: /demo/lastb.snapshot
+      DEMO_LISTENERS: tcp:0.0.0.0:5432
       TLS_ENABLED: ${TLS_ENABLED:-true}
       TLS_CA_PATH: /certs/server.crt
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       - /proc:/host/proc:ro
-      - agent2_logs:/var/log
+      - ./docker/demo/agent-2/logs:/var/log:ro
+      - ./docker/demo/agent-2:/demo:ro
       - ./docker/certs:/certs:ro
     privileged: false
     read_only: true
@@ -145,12 +157,46 @@ services:
       SECURITY_INTERVAL_MS: ${SECURITY_INTERVAL_MS:-15000}
       PROC_PATH: /host/proc
       LOG_PATH: /var/log
+      SSHD_CONFIG_PATH: /demo/sshd_config
+      W_SNAPSHOT_PATH: /demo/w.snapshot
+      LAST_SNAPSHOT_PATH: /demo/last.snapshot
+      LASTB_SNAPSHOT_PATH: /demo/lastb.snapshot
+      DEMO_LISTENERS: tcp:0.0.0.0:6379,tcp:127.0.0.1:9200
       TLS_ENABLED: ${TLS_ENABLED:-true}
       TLS_CA_PATH: /certs/server.crt
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       - /proc:/host/proc:ro
-      - agent3_logs:/var/log
+      - ./docker/demo/agent-3/logs:/var/log:ro
+      - ./docker/demo/agent-3:/demo:ro
+      - ./docker/certs:/certs:ro
+    privileged: false
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - monitor-net
+
+  agent:
+    profiles: ["manual-agent"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      SERVER_HOST: server
+      SERVER_PORT: ${TCP_PORT:-9000}
+      COLLECT_INTERVAL_MS: ${COLLECT_INTERVAL_MS:-10000}
+      SECURITY_INTERVAL_MS: ${SECURITY_INTERVAL_MS:-15000}
+      PROC_PATH: /host/proc
+      LOG_PATH: /var/log
+      TLS_ENABLED: ${TLS_ENABLED:-true}
+      TLS_CA_PATH: /certs/server.crt
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - /proc:/host/proc:ro
       - ./docker/certs:/certs:ro
     privileged: false
     read_only: true
@@ -161,9 +207,6 @@ services:
 
 volumes:
   postgres_data:
-  agent1_logs:
-  agent2_logs:
-  agent3_logs:
 
 networks:
   monitor-net:

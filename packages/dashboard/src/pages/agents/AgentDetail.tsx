@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Link } from "react-router-dom";
 
 import { getJson } from "../../api/client.js";
 import { DataTable } from "../../components/data-table/DataTable.js";
@@ -13,7 +14,7 @@ import { CpuGauge } from "./components/CpuGauge.js";
 import { MemoryGauge } from "./components/MemoryGauge.js";
 import { MetricChart } from "./components/MetricChart.js";
 import { SeverityBadge } from "../events/components/SeverityBadge.js";
-import type { AgentInfo, SshdAuditResult } from "@monitor/shared";
+import type { AgentInfo, OpenPort, PortScanReport, SshdAuditResult } from "@monitor/shared";
 
 interface MetricRecord {
   id: number;
@@ -65,6 +66,10 @@ export function AgentDetailPage() {
   const { data: sshdAuditData } = useQuery({
     queryKey: ["agent-sshd-audit", agentId],
     queryFn: () => getJson<SshdAuditResult | null>(`/api/agents/${agentId}/sshd-audit`)
+  });
+  const { data: portScanData } = useQuery({
+    queryKey: ["agent-port-scan", agentId],
+    queryFn: () => getJson<PortScanReport | null>(`/api/agents/${agentId}/open-ports`)
   });
 
   const agent = data?.data;
@@ -126,6 +131,7 @@ export function AgentDetailPage() {
     }
   ];
   const sshdAudit = sshdAuditData?.data ?? null;
+  const portScan = portScanData?.data ?? null;
   const sshdStatusVariant =
     sshdAudit?.status === "critical"
       ? "destructive"
@@ -134,6 +140,39 @@ export function AgentDetailPage() {
         : sshdAudit?.status === "ok"
           ? "success"
           : "muted";
+  const portScanColumns: Array<ColumnDef<OpenPort>> = [
+    {
+      accessorKey: "protocol",
+      header: "Proto"
+    },
+    {
+      accessorKey: "address",
+      header: "Address",
+      cell: ({ row }) => `${row.original.address}:${row.original.port}`
+    },
+    {
+      accessorKey: "process",
+      header: "Process",
+      cell: ({ row }) => row.original.serviceName ?? row.original.process
+    },
+    {
+      accessorKey: "riskLevel",
+      header: "Risk",
+      cell: ({ row }) => (
+        <Badge
+          variant={
+            row.original.riskLevel === "danger"
+              ? "destructive"
+              : row.original.riskLevel === "warning"
+                ? "warning"
+                : "success"
+          }
+        >
+          {row.original.riskLevel}
+        </Badge>
+      )
+    }
+  ];
 
   return (
     <div className="space-y-6">
@@ -146,7 +185,15 @@ export function AgentDetailPage() {
             <h2 className="mt-2 text-3xl font-semibold text-white">{agent.hostname}</h2>
             <p className="mt-3 text-sm text-slate-400">{agent.agentId}</p>
           </div>
-          <AgentStatusBadge status={agent.status} />
+          <div className="flex items-center gap-3">
+            <AgentStatusBadge status={agent.status} />
+            <Link
+              className="inline-flex rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-slate-200"
+              to={`/agents/${agent.agentId}/security`}
+            >
+              Security detail
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -320,6 +367,57 @@ export function AgentDetailPage() {
                 )}
               </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Open ports</p>
+              <h3 className="mt-2 text-xl font-semibold text-white">Listening socket exposure</h3>
+            </div>
+            <Badge
+              variant={
+                portScan?.status === "critical"
+                  ? "destructive"
+                  : portScan?.status === "warning"
+                    ? "warning"
+                    : portScan?.status === "ok"
+                      ? "success"
+                      : "muted"
+              }
+            >
+              {portScan?.status ?? "unavailable"} · {portScan?.riskScore ?? 0}
+            </Badge>
+          </div>
+          {!portScan ? (
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-400">
+              No port scan has been received yet.
+            </div>
+          ) : (
+            <>
+              {portScan.error ? (
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-amber-200">
+                  {portScan.error}
+                </div>
+              ) : null}
+              {portScan.findings.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {portScan.findings.map((finding) => (
+                    <Badge key={finding} variant="warning">
+                      {finding}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
+              <DataTable
+                columns={portScanColumns}
+                data={portScan.openPorts}
+                emptyMessage="No open ports reported."
+              />
+            </>
           )}
         </CardContent>
       </Card>

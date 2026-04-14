@@ -30,6 +30,16 @@ const AlertsPage = lazy(() =>
 const StreamPage = lazy(() =>
   import("./pages/stream/StreamPage.js").then((module) => ({ default: module.StreamPage }))
 );
+const SecurityOverviewPage = lazy(() =>
+  import("./pages/security/SecurityOverview.js").then((module) => ({
+    default: module.SecurityOverviewPage
+  }))
+);
+const AgentSecurityDetailPage = lazy(() =>
+  import("./pages/security/AgentSecurityDetail.js").then((module) => ({
+    default: module.AgentSecurityDetailPage
+  }))
+);
 
 function PageLoader() {
   return (
@@ -53,7 +63,9 @@ export function App() {
                 <Route element={<AgentDetailPage />} path="agents/:agentId" />
                 <Route element={<EventsPage />} path="events" />
                 <Route element={<AlertsPage />} path="alerts" />
+                <Route element={<SecurityOverviewPage />} path="security" />
                 <Route element={<StreamPage />} path="stream" />
+                <Route element={<AgentSecurityDetailPage />} path="agents/:agentId/security" />
               </Route>
             </Routes>
           </Suspense>

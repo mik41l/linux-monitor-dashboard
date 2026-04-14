@@ -1,0 +1,2 @@
+Apr 15 09:18:10 linux-server-1 systemd[1]: nginx.service: Scheduled restart job, restart counter is at 1.
+Apr 15 09:18:11 linux-server-1 kernel: audit: type=1400 apparmor="STATUS" operation="profile_load" profile="nginx"

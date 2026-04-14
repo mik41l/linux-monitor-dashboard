@@ -7,6 +7,7 @@ export const translations = {
     navAgents: "Ajanlar",
     navEvents: "Olaylar",
     navAlerts: "Uyarılar",
+    navSecurity: "Güvenlik",
     navStream: "Canlı Akış",
     missionTitle: "Misyon",
     missionText:
@@ -70,6 +71,7 @@ export const translations = {
     navAgents: "Агенты",
     navEvents: "События",
     navAlerts: "Алерты",
+    navSecurity: "Безопасность",
     navStream: "Поток",
     missionTitle: "Миссия",
     missionText:

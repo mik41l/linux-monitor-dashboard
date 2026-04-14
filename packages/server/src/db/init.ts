@@ -76,6 +76,54 @@ export async function ensureDatabase(pool: Pool) {
     );
     CREATE INDEX IF NOT EXISTS sshd_audits_agent_idx ON sshd_audits(agent_id);
     CREATE INDEX IF NOT EXISTS sshd_audits_collected_idx ON sshd_audits(collected_at);
+
+    CREATE TABLE IF NOT EXISTS port_scans (
+      id SERIAL PRIMARY KEY,
+      agent_id TEXT NOT NULL REFERENCES agents(agent_id) ON DELETE CASCADE,
+      status TEXT NOT NULL,
+      risk_score INTEGER NOT NULL DEFAULT 0,
+      payload JSONB NOT NULL,
+      collected_at TIMESTAMPTZ NOT NULL,
+      received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS port_scans_agent_idx ON port_scans(agent_id);
+    CREATE INDEX IF NOT EXISTS port_scans_collected_idx ON port_scans(collected_at);
+
+    CREATE TABLE IF NOT EXISTS firewall_audits (
+      id SERIAL PRIMARY KEY,
+      agent_id TEXT NOT NULL REFERENCES agents(agent_id) ON DELETE CASCADE,
+      status TEXT NOT NULL,
+      risk_score INTEGER NOT NULL DEFAULT 0,
+      payload JSONB NOT NULL,
+      collected_at TIMESTAMPTZ NOT NULL,
+      received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS firewall_audits_agent_idx ON firewall_audits(agent_id);
+    CREATE INDEX IF NOT EXISTS firewall_audits_collected_idx ON firewall_audits(collected_at);
+
+    CREATE TABLE IF NOT EXISTS hardening_reports (
+      id SERIAL PRIMARY KEY,
+      agent_id TEXT NOT NULL REFERENCES agents(agent_id) ON DELETE CASCADE,
+      status TEXT NOT NULL,
+      overall_score INTEGER NOT NULL DEFAULT 0,
+      payload JSONB NOT NULL,
+      collected_at TIMESTAMPTZ NOT NULL,
+      received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS hardening_reports_agent_idx ON hardening_reports(agent_id);
+    CREATE INDEX IF NOT EXISTS hardening_reports_collected_idx ON hardening_reports(collected_at);
+
+    CREATE TABLE IF NOT EXISTS login_activity_reports (
+      id SERIAL PRIMARY KEY,
+      agent_id TEXT NOT NULL REFERENCES agents(agent_id) ON DELETE CASCADE,
+      status TEXT NOT NULL,
+      risk_score INTEGER NOT NULL DEFAULT 0,
+      payload JSONB NOT NULL,
+      collected_at TIMESTAMPTZ NOT NULL,
+      received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS login_activity_reports_agent_idx ON login_activity_reports(agent_id);
+    CREATE INDEX IF NOT EXISTS login_activity_reports_collected_idx ON login_activity_reports(collected_at);
   `);
 
   await pool.query(`

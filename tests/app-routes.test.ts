@@ -12,7 +12,21 @@ describe("server app routes", () => {
       {
         agentsService: {
           listAgents: vi.fn(async () => [{ agentId: "agent-1", hostname: "linux-server-1" }]),
-          getAgent: vi.fn(async () => ({ agentId: "agent-1", hostname: "linux-server-1" }))
+          getAgent: vi.fn(async () => ({ agentId: "agent-1", hostname: "linux-server-1" })),
+          getLatestSshdAudit: vi.fn(async () => ({ agentId: "agent-1", status: "ok", riskScore: 0 })),
+          getLatestPortScan: vi.fn(async () => ({ agentId: "agent-1", status: "ok", riskScore: 0 })),
+          getLatestFirewallAudit: vi.fn(async () => ({ agentId: "agent-1", status: "ok", riskScore: 0 })),
+          getLatestHardeningReport: vi.fn(async () => ({ agentId: "agent-1", status: "ok", overallScore: 91 })),
+          getLatestLoginActivity: vi.fn(async () => ({ agentId: "agent-1", status: "ok", riskScore: 0 })),
+          getAgentSecurityProfile: vi.fn(async () => ({
+            agent: { agentId: "agent-1", hostname: "linux-server-1" },
+            overallStatus: "ok",
+            recommendations: []
+          })),
+          getSecurityOverview: vi.fn(async () => ({
+            totals: { agents: 1, criticalAgents: 0, warningAgents: 0, averageHardeningScore: 91 },
+            agents: []
+          }))
         } as never,
         alertsService: {
           listAlerts: vi.fn(async () => [{ id: 1, ruleName: "cpu-threshold" }]),
@@ -72,6 +86,34 @@ describe("server app routes", () => {
       method: "GET",
       url: "/api/dashboard/summary"
     });
+    const sshdAudit = await app.inject({
+      method: "GET",
+      url: "/api/agents/agent-1/sshd-audit"
+    });
+    const openPorts = await app.inject({
+      method: "GET",
+      url: "/api/agents/agent-1/open-ports"
+    });
+    const firewall = await app.inject({
+      method: "GET",
+      url: "/api/agents/agent-1/firewall"
+    });
+    const hardening = await app.inject({
+      method: "GET",
+      url: "/api/agents/agent-1/hardening"
+    });
+    const loginActivity = await app.inject({
+      method: "GET",
+      url: "/api/agents/agent-1/login-activity"
+    });
+    const securityProfile = await app.inject({
+      method: "GET",
+      url: "/api/agents/agent-1/security"
+    });
+    const securityOverview = await app.inject({
+      method: "GET",
+      url: "/api/security/overview"
+    });
 
     expect(health.statusCode).toBe(200);
     expect(JSON.parse(health.payload).status).toBe("ok");
@@ -80,6 +122,13 @@ describe("server app routes", () => {
     expect(JSON.parse(events.payload).data).toEqual([{ id: 1, eventType: "auth.login_failed" }]);
     expect(JSON.parse(alerts.payload).data).toEqual([{ id: 1, ruleName: "cpu-threshold" }]);
     expect(JSON.parse(summary.payload).data.totals.openAlerts).toBe(1);
+    expect(JSON.parse(sshdAudit.payload).data.status).toBe("ok");
+    expect(JSON.parse(openPorts.payload).data.status).toBe("ok");
+    expect(JSON.parse(firewall.payload).data.status).toBe("ok");
+    expect(JSON.parse(hardening.payload).data.overallScore).toBe(91);
+    expect(JSON.parse(loginActivity.payload).data.status).toBe("ok");
+    expect(JSON.parse(securityProfile.payload).data.overallStatus).toBe("ok");
+    expect(JSON.parse(securityOverview.payload).data.totals.averageHardeningScore).toBe(91);
 
     await app.close();
   });

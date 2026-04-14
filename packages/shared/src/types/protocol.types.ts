@@ -1,7 +1,11 @@
 import type { AgentHandshake } from "./agents.types.js";
 import type { Alert } from "./alerts.types.js";
+import type { FirewallAudit } from "./firewall.types.js";
+import type { HardeningReport } from "./hardening.types.js";
+import type { LoginActivityReport } from "./login-activity.types.js";
 import type { MetricData } from "./metrics.types.js";
 import type { SecurityEvent } from "./events.types.js";
+import type { PortScanReport } from "./ports.types.js";
 import type { SshdAuditResult } from "./sshd.types.js";
 
 export const MESSAGE_TYPES = {
@@ -12,7 +16,11 @@ export const MESSAGE_TYPES = {
   ACK: 0x05,
   ALERT: 0x06,
   CONFIG_UPDATE: 0x07,
-  SSHD_AUDIT: 0x08
+  SSHD_AUDIT: 0x08,
+  PORT_SCAN: 0x09,
+  FIREWALL_AUDIT: 0x0a,
+  HARDENING_REPORT: 0x0b,
+  LOGIN_ACTIVITY: 0x0c
 } as const;
 
 export type MessageType = (typeof MESSAGE_TYPES)[keyof typeof MESSAGE_TYPES];
@@ -43,6 +51,10 @@ export type ProtocolMessage =
   | ProtocolFrame<MetricData>
   | ProtocolFrame<SecurityEvent>
   | ProtocolFrame<SshdAuditResult>
+  | ProtocolFrame<PortScanReport>
+  | ProtocolFrame<FirewallAudit>
+  | ProtocolFrame<HardeningReport>
+  | ProtocolFrame<LoginActivityReport>
   | ProtocolFrame<HeartbeatMessage>
   | ProtocolFrame<AckMessage>
   | ProtocolFrame<Alert>

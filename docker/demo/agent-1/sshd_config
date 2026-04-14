@@ -1,0 +1,10 @@
+Port 2222
+PermitRootLogin no
+PasswordAuthentication no
+MaxAuthTries 3
+PermitEmptyPasswords no
+X11Forwarding no
+Protocol 2
+UsePAM yes
+LoginGraceTime 30
+AllowUsers ops deploy

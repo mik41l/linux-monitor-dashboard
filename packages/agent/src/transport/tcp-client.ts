@@ -9,9 +9,13 @@ import {
   encodeFrame,
   type AckMessage,
   type AgentHandshake,
+  type FirewallAudit,
   type HeartbeatMessage,
+  type HardeningReport,
+  type LoginActivityReport,
   type MetricData,
   type MessageType,
+  type PortScanReport,
   type SecurityEvent,
   type SshdAuditResult
 } from "@monitor/shared";
@@ -77,6 +81,22 @@ export class TcpClient {
 
   public sendSshdAudit(audit: SshdAuditResult) {
     this.send(MESSAGE_TYPES.SSHD_AUDIT, audit);
+  }
+
+  public sendPortScan(report: PortScanReport) {
+    this.send(MESSAGE_TYPES.PORT_SCAN, report);
+  }
+
+  public sendFirewallAudit(report: FirewallAudit) {
+    this.send(MESSAGE_TYPES.FIREWALL_AUDIT, report);
+  }
+
+  public sendHardeningReport(report: HardeningReport) {
+    this.send(MESSAGE_TYPES.HARDENING_REPORT, report);
+  }
+
+  public sendLoginActivity(report: LoginActivityReport) {
+    this.send(MESSAGE_TYPES.LOGIN_ACTIVITY, report);
   }
 
   private connect() {

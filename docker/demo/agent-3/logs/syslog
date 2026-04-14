@@ -1,0 +1,2 @@
+Apr 15 04:12:02 linux-server-3 kernel: segfault at 0 ip 0000 sp 0000 error 4 in redis-server[7f00+1000]
+Apr 15 04:12:05 linux-server-3 systemd[1]: critical dependency failed for backup.target

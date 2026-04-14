@@ -1,0 +1,2 @@
+Apr 15 02:32:01 linux-server-2 postgres[991]: FATAL: password authentication failed for user "postgres"
+Apr 15 02:32:03 linux-server-2 kernel: critical thermal threshold reached on cpu package
