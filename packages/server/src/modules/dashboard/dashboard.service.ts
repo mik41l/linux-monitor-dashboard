@@ -39,13 +39,22 @@ export class DashboardService {
       .limit(5);
 
     const onlineTrend = await this.database.db.execute(sql`
-      SELECT to_char(date_trunc('minute', last_heartbeat), 'HH24:MI') AS label,
-             count(*)::int AS "onlineAgents"
-      FROM agents
-      WHERE last_heartbeat >= now() - interval '30 minutes'
-      GROUP BY 1
-      ORDER BY 1 ASC
-      LIMIT 6
+      WITH buckets AS (
+        SELECT generate_series(
+          date_trunc('minute', now()) - interval '55 minutes',
+          date_trunc('minute', now()),
+          interval '5 minutes'
+        ) AS bucket
+      )
+      SELECT to_char(bucket, 'HH24:MI') AS label,
+             count(agent_id)::int AS "onlineAgents"
+      FROM buckets
+      LEFT JOIN agents
+        ON agents.status = 'online'
+       AND agents.last_heartbeat IS NOT NULL
+       AND agents.last_heartbeat >= buckets.bucket
+      GROUP BY bucket
+      ORDER BY bucket ASC
     `);
 
     const heartbeatSeries = onlineTrend.rows.map((row) => ({
@@ -84,8 +93,8 @@ export class DashboardService {
       heartbeatSeries:
         heartbeatSeries.length > 0
           ? heartbeatSeries
-          : Array.from({ length: 6 }, (_, index) => ({
-              label: `T-${5 - index}`,
+          : Array.from({ length: 12 }, (_, index) => ({
+              label: `T-${55 - index * 5}`,
               onlineAgents
             })),
       resourceSeries,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Search } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -91,6 +91,14 @@ export function AgentsPage() {
     setSearchParams(nextParams, { replace: true });
   };
 
+  useEffect(() => {
+    const nextSearch = searchParams.get("search") ?? "";
+    const nextStatus = searchParams.get("status") ?? "";
+
+    setSearch((current) => (current === nextSearch ? current : nextSearch));
+    setStatus((current) => (current === nextStatus ? current : nextStatus));
+  }, [searchParams]);
+
   return (
     <div className="space-y-6">
       <Card>
@@ -102,7 +110,7 @@ export function AgentsPage() {
           </h2>
         </div>
 
-        <div className="grid w-full gap-3 lg:max-w-3xl lg:grid-cols-[1.4fr_0.7fr]">
+        <div className="grid w-full gap-3 lg:max-w-4xl lg:grid-cols-[1.4fr_0.7fr_auto]">
           <label className="flex items-center gap-3">
             <Search className="h-4 w-4 text-slate-400" />
             <Input
@@ -127,6 +135,12 @@ export function AgentsPage() {
             <option value="online">{translateAgentStatus("online", t)}</option>
             <option value="offline">{translateAgentStatus("offline", t)}</option>
           </Select>
+          <Link
+            className="inline-flex items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-300/12 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-300/18"
+            to="/agents/add"
+          >
+            {t("addServer")}
+          </Link>
         </div>
         </CardContent>
       </Card>

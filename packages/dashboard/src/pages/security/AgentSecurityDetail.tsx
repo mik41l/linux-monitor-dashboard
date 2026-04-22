@@ -135,7 +135,7 @@ export function AgentSecurityDetailPage() {
 
       <HardeningGauge report={profile.hardeningReport} />
 
-      <section className="grid gap-6 2xl:grid-cols-[1.05fr_0.95fr]">
+      <section className="grid items-start gap-6 2xl:grid-cols-[1.05fr_0.95fr]">
         <SshdAuditCard audit={profile.sshdAudit} />
         <FirewallStatus audit={profile.firewallAudit} />
       </section>

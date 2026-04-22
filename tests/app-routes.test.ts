@@ -10,6 +10,11 @@ describe("server app routes", () => {
         error: vi.fn()
       } as never,
       {
+        agentInstallsService: {
+          listInstalls: vi.fn(async () => []),
+          getInstall: vi.fn(async () => undefined),
+          createInstall: vi.fn(async () => undefined)
+        } as never,
         agentsService: {
           listAgents: vi.fn(async () => [{ agentId: "agent-1", hostname: "linux-server-1" }]),
           getAgent: vi.fn(async () => ({ agentId: "agent-1", hostname: "linux-server-1" })),
@@ -33,6 +38,16 @@ describe("server app routes", () => {
           listRules: vi.fn(async () => [{ id: 1, name: "cpu-threshold" }]),
           resolveAlert: vi.fn(async () => undefined),
           updateRule: vi.fn(async () => ({ id: 1, isEnabled: true }))
+        } as never,
+        authService: {
+          login: vi.fn(),
+          authenticateToken: vi.fn(),
+          listUsers: vi.fn(),
+          createUser: vi.fn(),
+          updateUser: vi.fn(),
+          setPassword: vi.fn(),
+          changeOwnPassword: vi.fn(),
+          listLoginLogs: vi.fn()
         } as never,
         dashboardService: {
           getSummary: vi.fn(async () => ({

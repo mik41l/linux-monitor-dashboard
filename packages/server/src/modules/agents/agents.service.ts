@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike } from "drizzle-orm";
+import { and, desc, eq, ilike, or } from "drizzle-orm";
 
 import type {
   AgentHandshake,
@@ -53,6 +53,20 @@ export class AgentsService {
       .where(eq(agents.agentId, agentId));
   }
 
+  public async ensurePlaceholder(agentId: string) {
+    await this.database.db
+      .insert(agents)
+      .values({
+        agentId,
+        hostname: agentId,
+        status: "online",
+        lastHeartbeat: new Date()
+      })
+      .onConflictDoNothing({
+        target: agents.agentId
+      });
+  }
+
   public async markOffline(agentId: string) {
     await this.database.db
       .update(agents)
@@ -73,7 +87,14 @@ export class AgentsService {
     }
 
     if (options?.search) {
-      conditions.push(ilike(agents.hostname, `%${options.search}%`));
+      const pattern = `%${options.search}%`;
+      conditions.push(
+        or(
+          ilike(agents.hostname, pattern),
+          ilike(agents.agentId, pattern),
+          ilike(agents.ipAddress, pattern)
+        )
+      );
     }
 
     return this.database.db

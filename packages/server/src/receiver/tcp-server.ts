@@ -176,6 +176,7 @@ export async function processIncomingFrame(options: FrameProcessingOptions) {
   }
 
   if (isMetricFrame(frame)) {
+    await agentsService.ensurePlaceholder(frame.payload.agentId);
     await metricsService.saveMetric(frame.payload);
     await alertsService.createAlertsForMetric(frame.payload);
     correlationEngine.processMetric(frame.payload);
@@ -188,6 +189,7 @@ export async function processIncomingFrame(options: FrameProcessingOptions) {
   }
 
   if (isSecurityEventFrame(frame)) {
+    await agentsService.ensurePlaceholder(frame.payload.agentId);
     await eventsService.saveEvent(frame.payload);
     await alertsService.createAlertForSecurityEvent(frame.payload);
     correlationEngine.processEvent(frame.payload);
@@ -199,6 +201,7 @@ export async function processIncomingFrame(options: FrameProcessingOptions) {
   }
 
   if (isSshdAuditFrame(frame)) {
+    await agentsService.ensurePlaceholder(frame.payload.agentId);
     await agentsService.saveSshdAudit(frame.payload);
     websocketHub.broadcast({
       type: "sshd-audit",
@@ -208,6 +211,7 @@ export async function processIncomingFrame(options: FrameProcessingOptions) {
   }
 
   if (isPortScanFrame(frame)) {
+    await agentsService.ensurePlaceholder(frame.payload.agentId);
     await agentsService.savePortScan(frame.payload);
     websocketHub.broadcast({
       type: "port-scan",
@@ -217,6 +221,7 @@ export async function processIncomingFrame(options: FrameProcessingOptions) {
   }
 
   if (isFirewallAuditFrame(frame)) {
+    await agentsService.ensurePlaceholder(frame.payload.agentId);
     await agentsService.saveFirewallAudit(frame.payload);
     websocketHub.broadcast({
       type: "firewall-audit",
@@ -226,6 +231,7 @@ export async function processIncomingFrame(options: FrameProcessingOptions) {
   }
 
   if (isHardeningReportFrame(frame)) {
+    await agentsService.ensurePlaceholder(frame.payload.agentId);
     await agentsService.saveHardeningReport(frame.payload);
     websocketHub.broadcast({
       type: "hardening-report",
@@ -235,6 +241,7 @@ export async function processIncomingFrame(options: FrameProcessingOptions) {
   }
 
   if (isLoginActivityFrame(frame)) {
+    await agentsService.ensurePlaceholder(frame.payload.agentId);
     await agentsService.saveLoginActivity(frame.payload);
     websocketHub.broadcast({
       type: "login-activity",

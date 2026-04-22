@@ -23,6 +23,15 @@ interface AlertPayload {
   id?: number;
 }
 
+function extractAgentId(data: unknown) {
+  if (typeof data !== "object" || data === null) {
+    return undefined;
+  }
+
+  const agentId = (data as { agentId?: unknown }).agentId;
+  return typeof agentId === "string" && agentId.length > 0 ? agentId : undefined;
+}
+
 export function LiveUpdatesBridge() {
   const queryClient = useQueryClient();
   const { t } = useLanguage();
@@ -31,15 +40,19 @@ export function LiveUpdatesBridge() {
   useWebSocket((payload) => {
     const message = payload as LiveMessage;
     window.dispatchEvent(new CustomEvent("monitor-ws", { detail: message }));
+    const agentId = extractAgentId(message.data);
 
     if (message.type === "metric") {
       void queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       void queryClient.invalidateQueries({ queryKey: ["agents"] });
+      void queryClient.invalidateQueries({ queryKey: agentId ? ["agent", agentId] : ["agent"] });
+      void queryClient.invalidateQueries({ queryKey: agentId ? ["agent-metrics", agentId] : ["agent-metrics"] });
       return;
     }
 
     if (message.type === "event") {
       void queryClient.invalidateQueries({ queryKey: ["events"] });
+      void queryClient.invalidateQueries({ queryKey: agentId ? ["agent-events", agentId] : ["agent-events"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       return;
     }
@@ -68,15 +81,15 @@ export function LiveUpdatesBridge() {
     }
 
     if (message.type === "sshd-audit") {
-      void queryClient.invalidateQueries({ queryKey: ["agent-sshd-audit"] });
-      void queryClient.invalidateQueries({ queryKey: ["agent-security"] });
+      void queryClient.invalidateQueries({ queryKey: agentId ? ["agent-sshd-audit", agentId] : ["agent-sshd-audit"] });
+      void queryClient.invalidateQueries({ queryKey: agentId ? ["agent-security", agentId] : ["agent-security"] });
       void queryClient.invalidateQueries({ queryKey: ["security-overview"] });
       return;
     }
 
     if (message.type === "port-scan") {
-      void queryClient.invalidateQueries({ queryKey: ["agent-port-scan"] });
-      void queryClient.invalidateQueries({ queryKey: ["agent-security"] });
+      void queryClient.invalidateQueries({ queryKey: agentId ? ["agent-port-scan", agentId] : ["agent-port-scan"] });
+      void queryClient.invalidateQueries({ queryKey: agentId ? ["agent-security", agentId] : ["agent-security"] });
       void queryClient.invalidateQueries({ queryKey: ["security-overview"] });
       return;
     }
@@ -86,7 +99,7 @@ export function LiveUpdatesBridge() {
       message.type === "hardening-report" ||
       message.type === "login-activity"
     ) {
-      void queryClient.invalidateQueries({ queryKey: ["agent-security"] });
+      void queryClient.invalidateQueries({ queryKey: agentId ? ["agent-security", agentId] : ["agent-security"] });
       void queryClient.invalidateQueries({ queryKey: ["security-overview"] });
     }
   });

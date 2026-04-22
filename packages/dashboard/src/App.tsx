@@ -3,8 +3,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
-import { AppLayout } from "./components/layout/AppLayout.js";
-import { LiveUpdatesBridge } from "./components/LiveUpdatesBridge.js";
+import { ProtectedShell } from "./components/auth/ProtectedShell.js";
+import { RequireAuth } from "./components/auth/RequireAuth.js";
+import { AuthProvider } from "./context/AuthContext.js";
 import { LanguageProvider } from "./context/LanguageContext.js";
 import { useLanguage } from "./context/LanguageContext.js";
 import { queryClient } from "./lib/query-client.js";
@@ -20,6 +21,11 @@ const AgentsPage = lazy(() =>
 const AgentDetailPage = lazy(() =>
   import("./pages/agents/AgentDetail.js").then((module) => ({
     default: module.AgentDetailPage
+  }))
+);
+const AddServerPage = lazy(() =>
+  import("./pages/agents/AddServerPage.js").then((module) => ({
+    default: module.AddServerPage
   }))
 );
 const EventsPage = lazy(() =>
@@ -41,6 +47,12 @@ const AgentSecurityDetailPage = lazy(() =>
     default: module.AgentSecurityDetailPage
   }))
 );
+const LoginPage = lazy(() =>
+  import("./pages/LoginPage.js").then((module) => ({ default: module.LoginPage }))
+);
+const UsersPage = lazy(() =>
+  import("./pages/users/UsersPage.js").then((module) => ({ default: module.UsersPage }))
+);
 
 function PageLoader() {
   const { t } = useLanguage();
@@ -56,23 +68,34 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <LiveUpdatesBridge />
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route element={<AppLayout />} path="/">
-                <Route element={<OverviewPage />} index />
-                <Route element={<AgentsPage />} path="agents" />
-                <Route element={<AgentDetailPage />} path="agents/:agentId" />
-                <Route element={<EventsPage />} path="events" />
-                <Route element={<AlertsPage />} path="alerts" />
-                <Route element={<SecurityOverviewPage />} path="security" />
-                <Route element={<StreamPage />} path="stream" />
-                <Route element={<AgentSecurityDetailPage />} path="agents/:agentId/security" />
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route element={<LoginPage />} path="login" />
+                <Route
+                  element={
+                    <RequireAuth>
+                      <ProtectedShell />
+                    </RequireAuth>
+                  }
+                  path="/"
+                >
+                  <Route element={<OverviewPage />} index />
+                  <Route element={<AgentsPage />} path="agents" />
+                  <Route element={<AddServerPage />} path="agents/add" />
+                  <Route element={<AgentDetailPage />} path="agents/:agentId" />
+                  <Route element={<EventsPage />} path="events" />
+                  <Route element={<AlertsPage />} path="alerts" />
+                  <Route element={<SecurityOverviewPage />} path="security" />
+                  <Route element={<StreamPage />} path="stream" />
+                  <Route element={<UsersPage />} path="users" />
+                  <Route element={<AgentSecurityDetailPage />} path="agents/:agentId/security" />
+                </Route>
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </AuthProvider>
       </LanguageProvider>
       <Toaster position="top-right" richColors />
     </QueryClientProvider>

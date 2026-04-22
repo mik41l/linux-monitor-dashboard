@@ -1,6 +1,8 @@
 export * from "./agents.schema.js";
+export * from "./agent-installs.schema.js";
 export * from "./alert-rules.schema.js";
 export * from "./alerts.schema.js";
+export * from "./auth-login-logs.schema.js";
 export * from "./firewall-audits.schema.js";
 export * from "./hardening-reports.schema.js";
 export * from "./login-activity-reports.schema.js";
@@ -8,3 +10,4 @@ export * from "./metrics.schema.js";
 export * from "./port-scans.schema.js";
 export * from "./security-events.schema.js";
 export * from "./sshd-audits.schema.js";
+export * from "./users.schema.js";

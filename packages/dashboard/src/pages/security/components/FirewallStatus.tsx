@@ -41,8 +41,8 @@ export function FirewallStatus({ audit }: { audit: FirewallAudit | null }) {
   ];
 
   return (
-    <Card>
-      <CardContent className="space-y-4 p-6">
+    <Card className="h-fit">
+      <CardContent className="space-y-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{t("firewallTitle")}</p>
@@ -54,28 +54,28 @@ export function FirewallStatus({ audit }: { audit: FirewallAudit | null }) {
         </div>
 
         <div className="grid gap-3 md:grid-cols-4">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
             <p className="text-sm text-slate-400">{t("backendLabel")}</p>
             <p className="mt-2 text-sm text-white">{audit?.backend ?? t("backendNone")}</p>
           </div>
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
             <p className="text-sm text-slate-400">{t("inputPolicy")}</p>
             <p className="mt-2 text-sm text-white">{audit?.defaultPolicy.input ?? t("unknown")}</p>
           </div>
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
             <p className="text-sm text-slate-400">{t("outputPolicy")}</p>
             <p className="mt-2 text-sm text-white">{audit?.defaultPolicy.output ?? t("unknown")}</p>
           </div>
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
             <p className="text-sm text-slate-400">{t("forwardPolicy")}</p>
             <p className="mt-2 text-sm text-white">{audit?.defaultPolicy.forward ?? t("unknown")}</p>
           </div>
         </div>
 
         {audit?.findings && audit.findings.length > 0 ? (
-          <div className="space-y-2">
+          <div className="grid gap-3 xl:grid-cols-2">
             {audit.findings.slice(0, 4).map((finding) => (
-              <div key={`${finding.key}-${finding.message}`} className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+              <div key={`${finding.key}-${finding.message}`} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                 <div className="flex items-center gap-2">
                   <Badge
                     variant={
@@ -103,7 +103,7 @@ export function FirewallStatus({ audit }: { audit: FirewallAudit | null }) {
             emptyMessage={audit?.error ?? t("noFirewallRules")}
           />
         ) : (
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-400">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-slate-400">
             {audit?.error ?? t("noFirewallRulesForAgent")}
           </div>
         )}

@@ -16,10 +16,12 @@
     "@fastify/cors": "^11.0.0",
     "@fastify/websocket": "^11.0.2",
     "@monitor/shared": "file:../shared",
+    "@types/ssh2": "^1.15.5",
     "drizzle-orm": "^0.44.2",
     "fastify": "^5.2.1",
     "pg": "^8.16.3",
     "pino": "^9.6.0",
+    "ssh2": "^1.17.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {

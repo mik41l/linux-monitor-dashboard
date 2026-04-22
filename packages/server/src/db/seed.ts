@@ -4,8 +4,11 @@ import type { Pool } from "pg";
 
 import { createDatabase } from "../config/database.js";
 import { readEnv } from "../config/env.js";
+import { hashPassword } from "../common/security/password.js";
 
 export async function seedDatabase(pool: Pool) {
+  const env = readEnv();
+
   await pool.query(`
     INSERT INTO alert_rules (name, description, condition, severity)
     VALUES
@@ -17,6 +20,17 @@ export async function seedDatabase(pool: Pool) {
       ('resource-anomaly-correlation', 'CPU and memory spike together', '{"metricTypes":["cpu","memory"],"threshold":85}', 'warning')
     ON CONFLICT DO NOTHING;
   `);
+
+  const adminPasswordHash = hashPassword(env.DEFAULT_ADMIN_PASSWORD);
+
+  await pool.query(
+    `
+      INSERT INTO users (email, username, full_name, role, status, password_hash)
+      VALUES ($1, $2, $3, 'admin', 'active', $4)
+      ON CONFLICT (email) DO NOTHING;
+    `,
+    [env.DEFAULT_ADMIN_EMAIL, env.DEFAULT_ADMIN_USERNAME, env.DEFAULT_ADMIN_NAME, adminPasswordHash]
+  );
 }
 
 async function runSeed() {

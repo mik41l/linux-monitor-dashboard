@@ -24,4 +24,10 @@ COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 COPY --from=build /app/packages/server/package.json ./packages/server/package.json
 COPY --from=build /app/packages/server/dist ./packages/server/dist
 
+COPY package.json tsconfig.base.json ./agent-bundle/
+COPY packages/shared ./agent-bundle/packages/shared
+COPY packages/agent ./agent-bundle/packages/agent
+COPY docker/Dockerfile.agent ./agent-bundle/docker/Dockerfile.agent
+COPY docker/agent-entrypoint.sh ./agent-bundle/docker/agent-entrypoint.sh
+
 CMD ["node", "packages/server/dist/index.js"]

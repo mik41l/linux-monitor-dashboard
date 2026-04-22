@@ -13,6 +13,7 @@ describe("agent to server ingest flow", () => {
     const acknowledged: Array<{ messageType: number; message: string }> = [];
     const agentsService = {
       upsertHandshake: vi.fn(async (_handshake: AgentHandshake) => undefined),
+      ensurePlaceholder: vi.fn(async (_agentId: string) => undefined),
       touchHeartbeat: vi.fn(async (_agentId: string) => undefined),
       markOffline: vi.fn(async (_agentId: string) => undefined)
     };
@@ -125,6 +126,7 @@ describe("agent to server ingest flow", () => {
 
     expect(handshakeAgentId).toBe("agent-1");
     expect(agentsService.upsertHandshake).toHaveBeenCalledTimes(1);
+    expect(agentsService.ensurePlaceholder).toHaveBeenCalledTimes(2);
     expect(metricsService.saveMetric).toHaveBeenCalledTimes(1);
     expect(eventsService.saveEvent).toHaveBeenCalledTimes(1);
     expect(alertsService.createAlertsForMetric).toHaveBeenCalledTimes(1);

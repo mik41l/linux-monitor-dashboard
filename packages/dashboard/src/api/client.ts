@@ -21,10 +21,34 @@ export async function putJson<TData, TBody = undefined>(path: string, body?: TBo
   });
 }
 
+export async function postJson<TData, TBody = undefined>(path: string, body?: TBody) {
+  return requestJson<TData>(path, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) })
+  });
+}
+
 async function requestJson<TData>(path: string, init?: RequestInit) {
-  const response = await fetch(`${API_URL}${path}`, init);
+  const token = window.localStorage.getItem("dashboard-auth-token");
+  const headers = new Headers(init?.headers);
+
+  if (token && !headers.has("authorization")) {
+    headers.set("authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers
+  });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      window.dispatchEvent(new CustomEvent("dashboard-auth-expired"));
+    }
+
     throw new Error(`Request failed with status ${response.status}`);
   }
 

@@ -145,5 +145,56 @@ export async function ensureDatabase(pool: Pool) {
     CREATE UNIQUE INDEX IF NOT EXISTS alert_rules_name_unique ON alert_rules(name);
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      username TEXT NOT NULL UNIQUE,
+      full_name TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'operator',
+      status TEXT NOT NULL DEFAULT 'active',
+      password_hash TEXT NOT NULL,
+      must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
+      last_login_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS users_email_idx ON users(email);
+    CREATE INDEX IF NOT EXISTS users_status_idx ON users(status);
+
+    CREATE TABLE IF NOT EXISTS auth_login_logs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      email TEXT NOT NULL,
+      status TEXT NOT NULL,
+      reason TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS auth_login_logs_email_idx ON auth_login_logs(email);
+    CREATE INDEX IF NOT EXISTS auth_login_logs_created_idx ON auth_login_logs(created_at);
+
+    CREATE TABLE IF NOT EXISTS agent_installs (
+      id SERIAL PRIMARY KEY,
+      agent_id TEXT NOT NULL,
+      agent_name TEXT NOT NULL,
+      host TEXT NOT NULL,
+      ssh_port INTEGER NOT NULL DEFAULT 22,
+      ssh_username TEXT NOT NULL,
+      auth_method TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      install_log TEXT NOT NULL DEFAULT '',
+      last_error TEXT,
+      created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      finished_at TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS agent_installs_agent_idx ON agent_installs(agent_id);
+    CREATE INDEX IF NOT EXISTS agent_installs_status_idx ON agent_installs(status);
+    CREATE INDEX IF NOT EXISTS agent_installs_created_idx ON agent_installs(created_at);
+  `);
+
   await seedDatabase(pool);
 }

@@ -5,7 +5,9 @@ import { readEnv } from "./config/env.js";
 import { createLogger } from "./config/logger.js";
 import { ensureDatabase } from "./db/init.js";
 import { AgentsService } from "./modules/agents/agents.service.js";
+import { AgentInstallsService } from "./modules/agent-installs/agent-installs.service.js";
 import { AlertsService } from "./modules/alerts/alerts.service.js";
+import { AuthService } from "./modules/auth/auth.service.js";
 import { DashboardService } from "./modules/dashboard/dashboard.service.js";
 import { EventsService } from "./modules/events/events.service.js";
 import { MetricsService } from "./modules/metrics/metrics.service.js";
@@ -20,15 +22,19 @@ async function bootstrap() {
   await ensureDatabase(database.pool);
   const connections = new ConnectionManager();
   const agentsService = new AgentsService(database);
+  const agentInstallsService = new AgentInstallsService(database);
   const metricsService = new MetricsService(database);
   const eventsService = new EventsService(database);
   const alertsService = new AlertsService(database);
+  const authService = new AuthService(database, env.AUTH_SECRET);
   const dashboardService = new DashboardService(database);
   const websocketHub = new WebSocketHub();
   const correlationEngine = new CorrelationEngine(logger, alertsService, websocketHub);
   const app = await buildApp(logger, {
+    agentInstallsService,
     agentsService,
     alertsService,
+    authService,
     dashboardService,
     eventsService,
     metricsService,

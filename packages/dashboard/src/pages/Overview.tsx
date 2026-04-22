@@ -4,6 +4,7 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -45,6 +46,55 @@ interface DashboardSummary {
   }>;
 }
 
+type HeartbeatPoint = DashboardSummary["heartbeatSeries"][number];
+
+interface HeartbeatTooltipProps {
+  active?: boolean;
+  onlineLabel: string;
+  label?: string;
+  payload?: Array<{
+    value?: number;
+    payload?: HeartbeatPoint;
+  }>;
+}
+
+function formatHeartbeatLabel(date: Date) {
+  return date.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function buildFallbackHeartbeatSeries(onlineAgents: number) {
+  const now = new Date();
+
+  return Array.from({ length: 12 }, (_, index) => {
+    const pointTime = new Date(now.getTime() - (11 - index) * 5 * 60 * 1000);
+
+    return {
+      label: formatHeartbeatLabel(pointTime),
+      onlineAgents
+    };
+  });
+}
+
+function HeartbeatTooltip({ active, label, onlineLabel, payload }: HeartbeatTooltipProps) {
+  if (!active || !payload?.length) {
+    return null;
+  }
+
+  const value = Number(payload[0]?.value ?? 0);
+
+  return (
+    <div className="rounded-2xl border border-cyan-300/20 bg-slate-950/95 px-4 py-3 shadow-2xl shadow-cyan-950/30">
+      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-cyan-100">
+        {value} {onlineLabel}
+      </p>
+    </div>
+  );
+}
+
 export function OverviewPage() {
   const { language, t } = useLanguage();
   const { data } = useQuery({
@@ -53,7 +103,11 @@ export function OverviewPage() {
   });
 
   const totals = data?.data.totals;
-  const series = data?.data.heartbeatSeries ?? [];
+  const onlineAgents = totals?.onlineAgents ?? 0;
+  const totalAgents = totals?.agents ?? 0;
+  const rawHeartbeatSeries = data?.data.heartbeatSeries ?? [];
+  const series = rawHeartbeatSeries.length >= 2 ? rawHeartbeatSeries : buildFallbackHeartbeatSeries(onlineAgents);
+  const yAxisMax = Math.max(totalAgents, onlineAgents, ...series.map((point) => point.onlineAgents), 1);
   const resourceSeries = data?.data.resourceSeries ?? [];
   const recentAlerts = data?.data.recentAlerts ?? [];
 
@@ -101,31 +155,61 @@ export function OverviewPage() {
                 {t("heartbeatTrend")}
               </h2>
             </div>
-            <p className="text-sm text-slate-400">
-              {t("heartbeatHint")}
-            </p>
+            <div className="text-right">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-sm font-medium text-emerald-100">
+                <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,0.8)]" />
+                {onlineAgents}/{totalAgents} {t("onlineAgentsLabel")}
+              </div>
+              <p className="mt-2 text-sm text-slate-400">{t("heartbeatHint")}</p>
+            </div>
           </div>
 
-          <div className="h-80">
+          <div className="h-80 rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_20%_10%,rgba(34,211,238,0.16),transparent_28%),linear-gradient(180deg,rgba(15,23,42,0.68),rgba(2,6,23,0.34))] p-4">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={series}>
+              <AreaChart data={series} margin={{ bottom: 4, left: 0, right: 18, top: 12 }}>
                 <defs>
                   <linearGradient id="heartbeatFill" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.6} />
-                    <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.02} />
+                    <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.5} />
+                    <stop offset="55%" stopColor="#22d3ee" stopOpacity={0.14} />
+                    <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.01} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="rgba(148,163,184,0.14)" vertical={false} />
-                <XAxis dataKey="label" stroke="#94a3b8" tickLine={false} axisLine={false} />
-                <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#020617",
-                    borderColor: "rgba(255,255,255,0.1)",
-                    borderRadius: "18px"
-                  }}
+                <CartesianGrid stroke="rgba(148,163,184,0.12)" strokeDasharray="4 8" vertical={false} />
+                <XAxis
+                  axisLine={false}
+                  dataKey="label"
+                  interval="preserveStartEnd"
+                  minTickGap={20}
+                  stroke="#94a3b8"
+                  tickLine={false}
+                  tickMargin={12}
                 />
-                <Area dataKey="onlineAgents" stroke="#22d3ee" strokeWidth={2} fill="url(#heartbeatFill)" type="monotone" />
+                <YAxis
+                  allowDecimals={false}
+                  axisLine={false}
+                  domain={[0, yAxisMax]}
+                  stroke="#94a3b8"
+                  tickCount={4}
+                  tickLine={false}
+                  width={34}
+                />
+                <ReferenceLine stroke="rgba(148,163,184,0.16)" strokeDasharray="4 8" y={onlineAgents} />
+                <Tooltip
+                  content={<HeartbeatTooltip onlineLabel={t("onlineAgentsLabel")} />}
+                  cursor={{ stroke: "rgba(34,211,238,0.28)", strokeWidth: 1 }}
+                />
+                <Area
+                  activeDot={{ r: 6, fill: "#67e8f9", stroke: "#020617", strokeWidth: 3 }}
+                  dataKey="onlineAgents"
+                  dot={{ r: 2.5, fill: "#22d3ee", strokeWidth: 0 }}
+                  fill="url(#heartbeatFill)"
+                  isAnimationActive={false}
+                  name={t("onlineAgentsLabel")}
+                  stroke="#22d3ee"
+                  strokeLinecap="round"
+                  strokeWidth={3}
+                  type="monotone"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>

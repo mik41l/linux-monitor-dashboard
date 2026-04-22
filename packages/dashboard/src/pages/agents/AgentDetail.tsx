@@ -34,6 +34,72 @@ interface EventRecord {
   occurredAt: string;
 }
 
+interface ProcessSample {
+  pid?: number;
+  command?: string;
+  cpuPercent?: number;
+  memoryPercent?: number;
+  rssBytes?: number;
+  state?: string;
+}
+
+function getMostActiveNetworkInterface(value: unknown) {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const interfaces = value.filter(
+    (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null
+  );
+
+  return interfaces
+    .filter((entry) => entry.interfaceName !== "lo")
+    .sort((left, right) => {
+      const leftTraffic = Number(left.rxBytes ?? 0) + Number(left.txBytes ?? 0);
+      const rightTraffic = Number(right.rxBytes ?? 0) + Number(right.txBytes ?? 0);
+
+      return rightTraffic - leftTraffic;
+    })[0] ?? interfaces[0] ?? null;
+}
+
+function getPrimaryDisk(value: unknown) {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const disks = value.filter(
+    (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null
+  );
+  const rootDisk = disks.find((entry) => entry.mountPoint === "/");
+
+  return (
+    rootDisk ??
+    disks
+      .filter((entry) => typeof entry.totalBytes === "number")
+      .sort((left, right) => Number(right.totalBytes ?? 0) - Number(left.totalBytes ?? 0))[0] ??
+    disks[0] ??
+    null
+  );
+}
+
+function getProcessSamples(value: unknown): ProcessSample[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((entry): entry is ProcessSample => typeof entry === "object" && entry !== null)
+    .slice(0, 5);
+}
+
+function formatOptional(value: unknown, fallback: string) {
+  if (value === null || typeof value === "undefined" || value === "") {
+    return fallback;
+  }
+
+  return String(value);
+}
+
 export function AgentDetailPage() {
   const { language, t } = useLanguage();
   const { agentId = "" } = useParams();
@@ -60,6 +126,11 @@ export function AgentDetailPage() {
     queryFn: () =>
       getJson<MetricRecord[]>(`/api/agents/${agentId}/metrics?type=network&range=1h&limit=10`)
   });
+  const { data: processMetrics } = useQuery({
+    queryKey: ["agent-metrics", agentId, "process"],
+    queryFn: () =>
+      getJson<MetricRecord[]>(`/api/agents/${agentId}/metrics?type=process&range=1h&limit=5`)
+  });
   const { data: eventsData } = useQuery({
     queryKey: ["agent-events", agentId],
     queryFn: () => getJson<EventRecord[]>("/api/events", { agentId, limit: 10 })
@@ -85,10 +156,9 @@ export function AgentDetailPage() {
 
   const latestCpu = cpuMetrics?.data[0]?.value ?? {};
   const latestMemory = memoryMetrics?.data[0]?.value ?? {};
-  const latestDisk = Array.isArray(diskMetrics?.data[0]?.value) ? diskMetrics?.data[0]?.value[0] : null;
-  const latestNetwork = Array.isArray(networkMetrics?.data[0]?.value)
-    ? networkMetrics?.data[0]?.value[0]
-    : null;
+  const latestDisk = getPrimaryDisk(diskMetrics?.data[0]?.value);
+  const latestNetwork = getMostActiveNetworkInterface(networkMetrics?.data[0]?.value);
+  const topProcesses = getProcessSamples(processMetrics?.data[0]?.value);
   const cpuPercent =
     typeof latestCpu?.usagePercent === "number" ? `${latestCpu.usagePercent.toFixed(1)}%` : "n/a";
   const memoryPercent =
@@ -97,6 +167,24 @@ export function AgentDetailPage() {
       : "n/a";
   const memoryUsed =
     typeof latestMemory?.usedBytes === "number" ? formatBytes(latestMemory.usedBytes) : "n/a";
+  const memoryTotal =
+    typeof latestMemory?.totalBytes === "number" ? formatBytes(latestMemory.totalBytes) : "n/a";
+  const swapUsed =
+    typeof latestMemory?.swapUsedBytes === "number" ? formatBytes(latestMemory.swapUsedBytes) : "n/a";
+  const cpuLoad = Array.isArray(latestCpu?.loadAverage)
+    ? latestCpu.loadAverage.map((value) => Number(value).toFixed(2)).join(" / ")
+    : "n/a";
+  const cpuCores = typeof latestCpu?.coreCount === "number" ? latestCpu.coreCount : "n/a";
+  const networkConnections =
+    latestNetwork && (typeof latestNetwork.tcpConnections === "number" || typeof latestNetwork.udpConnections === "number")
+      ? Number(latestNetwork.tcpConnections ?? 0) + Number(latestNetwork.udpConnections ?? 0)
+      : null;
+  const listeningPorts =
+    latestNetwork && typeof latestNetwork.listeningPorts === "number" ? Number(latestNetwork.listeningPorts) : null;
+  const osLabel = [
+    agent.osInfo?.distro ?? agent.osInfo?.platform,
+    agent.osInfo?.architecture
+  ].filter(Boolean).join(" · ");
 
   const cpuChartData = (cpuMetrics?.data ?? [])
     .map((entry) => ({
@@ -184,7 +272,9 @@ export function AgentDetailPage() {
               {t("agentDetail")}
             </p>
             <h2 className="mt-2 text-3xl font-semibold text-white">{agent.hostname}</h2>
-            <p className="mt-3 text-sm text-slate-400">{agent.agentId}</p>
+            <p className="mt-3 text-sm text-slate-400">
+              {agent.agentId} · {agent.ipAddress ?? "n/a"} · {osLabel || t("unknown")}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <AgentStatusBadge status={agent.status} />
@@ -196,6 +286,37 @@ export function AgentDetailPage() {
             </Link>
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">{t("reportedIp")}</p>
+            <p className="mt-3 text-xl font-semibold text-white">{agent.ipAddress ?? "n/a"}</p>
+            <p className="mt-2 text-sm text-slate-500">{t("lastHeartbeat")}: {agent.lastHeartbeat ? formatTimestamp(agent.lastHeartbeat, language) : t("noHeartbeat")}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">{t("osKernel")}</p>
+            <p className="mt-3 text-lg font-semibold text-white">{agent.osInfo?.distro ?? agent.osInfo?.platform ?? t("unknown")}</p>
+            <p className="mt-2 text-sm text-slate-500">{agent.osInfo?.kernelVersion ?? t("unknown")}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">{t("architecture")}</p>
+            <p className="mt-3 text-xl font-semibold text-white">{agent.osInfo?.architecture ?? t("unknown")}</p>
+            <p className="mt-2 text-sm text-slate-500">{t("uptime")}: {formatDuration(agent.osInfo?.uptimeSeconds)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">{t("registered")}</p>
+            <p className="mt-3 text-lg font-semibold text-white">{formatTimestamp(agent.registeredAt, language)}</p>
+            <p className="mt-2 text-sm text-slate-500">{t("status")}: {t(agent.status === "online" ? "statusOnline" : "statusOffline")}</p>
+          </CardContent>
+        </Card>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
@@ -214,12 +335,17 @@ export function AgentDetailPage() {
             <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{t("recentMetricSamples")}</p>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-sm text-slate-400">{t("cpuCoresLoad")}</p>
+                <p className="mt-2 text-lg font-medium text-white">{cpuCores}</p>
+                <p className="mt-2 text-sm text-slate-500">{cpuLoad}</p>
+              </div>
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
                 <p className="text-sm text-slate-400">{t("diskLabel")}</p>
                 <p className="mt-2 text-lg font-medium text-white">
                   {latestDisk ? `${Number(latestDisk.usagePercent ?? 0).toFixed(1)}%` : "n/a"}
                 </p>
                 <p className="mt-2 text-sm text-slate-500">
-                  {latestDisk?.mountPoint ?? "n/a"}
+                  {String(latestDisk?.mountPoint ?? "n/a")}
                 </p>
               </div>
               <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
@@ -232,13 +358,15 @@ export function AgentDetailPage() {
                     : "n/a"}
                 </p>
                 <p className="mt-2 text-sm text-slate-500">
-                  {latestNetwork?.interfaceName ?? "n/a"}
+                  {String(latestNetwork?.interfaceName ?? "n/a")} · {t("connections")}: {networkConnections ?? "n/a"} · {t("listeners")}: {listeningPorts ?? "n/a"}
                 </p>
               </div>
               <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
                 <p className="text-sm text-slate-400">{t("memoryFootprint")}</p>
                 <p className="mt-2 text-lg font-medium text-white">{memoryUsed}</p>
-                <p className="mt-2 text-sm text-slate-500">{memoryPercent}</p>
+                <p className="mt-2 text-sm text-slate-500">
+                  {memoryPercent} · {t("totalMemory")}: {memoryTotal} · swap: {swapUsed}
+                </p>
               </div>
               <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
                 <p className="text-sm text-slate-400">{t("telemetry")}</p>
@@ -282,6 +410,45 @@ export function AgentDetailPage() {
         </Card>
       </section>
 
+      <Card className="h-fit">
+        <CardContent className="space-y-4 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-slate-400">{t("topProcesses")}</p>
+              <h3 className="mt-2 text-xl font-semibold text-white">{t("process")}</h3>
+            </div>
+            <Badge variant="muted">{formatTimestamp(processMetrics?.data[0]?.collectedAt, language)}</Badge>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {topProcesses.length === 0 ? (
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-400">
+                n/a
+              </div>
+            ) : (
+              topProcesses.map((process) => (
+                <div
+                  className="rounded-3xl border border-white/10 bg-white/[0.03] p-4"
+                  key={`${process.pid}-${process.command}`}
+                >
+                  <p className="truncate text-sm font-medium text-white">
+                    {formatOptional(process.command, "n/a")}
+                  </p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    PID {formatOptional(process.pid, "n/a")} · {formatOptional(process.state, "n/a")}
+                  </p>
+                  <p className="mt-3 text-sm text-slate-300">
+                    CPU {typeof process.cpuPercent === "number" ? `${process.cpuPercent.toFixed(2)}%` : "n/a"}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-300">
+                    RAM {typeof process.memoryPercent === "number" ? `${process.memoryPercent.toFixed(2)}%` : "n/a"}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="space-y-4 p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -299,35 +466,35 @@ export function AgentDetailPage() {
               {t("noSshdAuditYet")}
             </div>
           ) : (
-            <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+            <div className="grid items-start gap-4 xl:grid-cols-[0.95fr_1.05fr]">
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                   <p className="text-sm text-slate-400">{t("configPath")}</p>
                   <p className="mt-2 text-sm text-white">{sshdAudit.configPath}</p>
                 </div>
-                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                   <p className="text-sm text-slate-400">{t("collected")}</p>
                   <p className="mt-2 text-sm text-white">
                     {formatTimestamp(sshdAudit.collectedAt, language)}
                   </p>
                 </div>
-                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                   <p className="text-sm text-slate-400">{t("permitRootLogin")}</p>
                   <p className="mt-2 text-sm text-white">{sshdAudit.permitRootLogin ?? t("notSet")}</p>
                 </div>
-                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                   <p className="text-sm text-slate-400">{t("passwordAuthentication")}</p>
                   <p className="mt-2 text-sm text-white">
                     {sshdAudit.passwordAuthentication ?? t("notSet")}
                   </p>
                 </div>
-                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                   <p className="text-sm text-slate-400">{t("portMaxAuthTries")}</p>
                   <p className="mt-2 text-sm text-white">
                     {sshdAudit.port ?? t("notSet")} / {sshdAudit.maxAuthTries ?? t("notSet")}
                   </p>
                 </div>
-                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                   <p className="text-sm text-slate-400">{t("allowUsers")}</p>
                   <p className="mt-2 text-sm text-white">
                     {sshdAudit.allowUsers.length > 0 ? sshdAudit.allowUsers.join(", ") : t("notSet")}
@@ -335,36 +502,38 @@ export function AgentDetailPage() {
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                 <p className="text-sm text-slate-400">{t("findings")}</p>
                 {sshdAudit.error ? (
-                  <p className="text-sm text-amber-200">{sshdAudit.error}</p>
+                  <p className="mt-3 text-sm text-amber-200">{sshdAudit.error}</p>
                 ) : sshdAudit.findings.length === 0 ? (
-                  <p className="text-sm text-emerald-200">{t("noRiskySshdSettings")}</p>
+                  <p className="mt-3 text-sm text-emerald-200">{t("noRiskySshdSettings")}</p>
                 ) : (
-                  sshdAudit.findings.map((finding) => (
-                    <div
-                      key={`${finding.key}-${finding.message}`}
-                      className="rounded-2xl border border-white/10 bg-slate-950/40 p-3"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge
-                          variant={
-                            finding.severity === "critical"
-                              ? "destructive"
-                              : finding.severity === "warning"
-                                ? "warning"
-                                : "muted"
-                          }
-                        >
-                          {translateAuditStatus(finding.severity, t)}
-                        </Badge>
-                        <p className="text-sm font-medium text-white">{finding.key}</p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    {sshdAudit.findings.map((finding) => (
+                      <div
+                        key={`${finding.key}-${finding.message}`}
+                        className="rounded-2xl border border-white/10 bg-slate-950/40 p-3"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant={
+                              finding.severity === "critical"
+                                ? "destructive"
+                                : finding.severity === "warning"
+                                  ? "warning"
+                                  : "muted"
+                            }
+                          >
+                            {translateAuditStatus(finding.severity, t)}
+                          </Badge>
+                          <p className="text-sm font-medium text-white">{finding.key}</p>
+                        </div>
+                        <p className="mt-2 text-sm text-slate-300">{finding.message}</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">{finding.recommendation}</p>
                       </div>
-                      <p className="mt-2 text-sm text-slate-300">{finding.message}</p>
-                      <p className="mt-2 text-xs text-slate-500">{finding.recommendation}</p>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { Activity, BellRing, LayoutDashboard, Shield, ShieldAlert, Server } from "lucide-react";
+import { Activity, BellRing, LayoutDashboard, Shield, ShieldAlert, Server, Users } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { useLanguage } from "../../context/LanguageContext.js";
@@ -11,6 +11,7 @@ export function AppSidebar() {
     { to: "/events", label: t("navEvents"), icon: Activity },
     { to: "/alerts", label: t("navAlerts"), icon: ShieldAlert },
     { to: "/security", label: t("navSecurity"), icon: Shield },
+    { to: "/users", label: t("navUsers"), icon: Users },
     { to: "/stream", label: t("navStream"), icon: BellRing }
   ];
 
@@ -36,20 +37,6 @@ export function AppSidebar() {
             </NavLink>
           ))}
         </nav>
-
-        <div className="mt-6 rounded-3xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/80">{t("missionTitle")}</p>
-          <p className="mt-2 text-sm leading-6 text-slate-200">
-            {t("missionText")}
-          </p>
-        </div>
-
-        <div className="mt-auto rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-          <p className="text-sm font-medium text-white">{t("runtimeTitle")}</p>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            {t("runtimeText")}
-          </p>
-        </div>
       </div>
     </aside>
   );

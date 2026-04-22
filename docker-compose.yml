@@ -39,6 +39,11 @@ services:
       TLS_KEY_PATH: /certs/server.key
       LOG_LEVEL: ${LOG_LEVEL:-info}
       DATABASE_URL: postgresql://${POSTGRES_USER:-monitor}:${POSTGRES_PASSWORD:-monitor_secret}@postgres:5432/${POSTGRES_DB:-monitor}
+      AUTH_SECRET: ${AUTH_SECRET:-dev-monitor-auth-secret-change-me}
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:-admin@example.com}
+      DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-admin}
+      DEFAULT_ADMIN_NAME: ${DEFAULT_ADMIN_NAME:-System Administrator}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-Admin12345!}
     ports:
       - "${API_PORT:-5005}:${API_PORT:-5005}"
       - "${TCP_PORT:-9000}:${TCP_PORT:-9000}"
@@ -94,6 +99,9 @@ services:
       - ./docker/demo/agent-1/logs:/var/log:ro
       - ./docker/demo/agent-1:/demo:ro
       - ./docker/certs:/certs:ro
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     privileged: false
     read_only: true
     tmpfs:
@@ -132,6 +140,9 @@ services:
       - ./docker/demo/agent-2/logs:/var/log:ro
       - ./docker/demo/agent-2:/demo:ro
       - ./docker/certs:/certs:ro
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     privileged: false
     read_only: true
     tmpfs:
@@ -170,6 +181,9 @@ services:
       - ./docker/demo/agent-3/logs:/var/log:ro
       - ./docker/demo/agent-3:/demo:ro
       - ./docker/certs:/certs:ro
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     privileged: false
     read_only: true
     tmpfs:
@@ -198,6 +212,9 @@ services:
     volumes:
       - /proc:/host/proc:ro
       - ./docker/certs:/certs:ro
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     privileged: false
     read_only: true
     tmpfs:
